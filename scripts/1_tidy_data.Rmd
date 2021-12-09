@@ -10,14 +10,14 @@ library(tidyverse)
 library(janitor)
 library(here)
 library(countrycode)
+library(vroom)
 
 
 ```
 
 
-#Seafood production data
 
-Capture fisheries data
+Capture fisheries production data
 ```{r}
 #Sort the symbols in values out
 ## "..." = data unavailable (here taken as zero)
@@ -109,4 +109,69 @@ saveRDS(object = aquaculture_prod, file = here("data", "tidy_data", "aquaculture
 
 ```
 
+
+Fish food balance data
+```{r}
+
+(fish_fbs_raw <- read_csv(here("data", "raw_data", "fish_FBS_1961-2017.csv")) %>% 
+   clean_names()
+)
+
+#remove every other column from row 6
+
+col_seq <- seq(from = 6, to = 118, by=2)
+
+fish_fbs_raw <- fish_fbs_raw[, -col_seq]
+
+(fish_fbs <- fish_fbs_raw %>% 
+      pivot_longer(cols = -c(country_name, faostat_group_name, element_name, unit_name), names_to = "year", values_to = "value") %>%
+      mutate(year = gsub("x", "", year))
+)
+
+
+saveRDS(object = fish_fbs, file = here("data", "tidy_data", "fish_fbs_tidy.rds"))
+
+```
+
+
+Fish trade data - volume, temporal
+```{r}
+
+col_seq <- seq(from = 7, to = 93, by=2) #remove every other column from the 7th
+
+seafood_trade_raw <- read_csv(here("data", "raw_data", "fish_trade_volume_1976-2019.csv")) %>% 
+   clean_names() %>% 
+   select(-col_seq) %>% 
+   filter(!reporting_country_name %in% c("Totals - Tonnes – net product weight", "FAO. 2021. Fishery and Aquaculture Statistics. Global Fish Trade - All partners aggregated 1976-2019 (FishstatJ). In: FAO Fisheries and Aquaculture Division [online]. Rome. Updated 2021. www.fao.org/fishery/statistics/software/fishstatj/en"))
+
+
+seafood_trade_volume <- seafood_trade_raw %>% 
+   pivot_longer(names_to = "year", values_to = "value", cols=-c(1:5)) %>% 
+   mutate(year = gsub("x", "", year) %>% 
+             as.numeric)
+
+saveRDS(object = seafood_trade_volume, file = here("data", "tidy_data", "seafood_trade_volume_product_weight_1976-2019.rds"))
+   
+
+
+```
+
+
+Fish trade data - value, temporal
+```{r}
+
+(seafood_value <- read_csv(here("data", "raw_data", "fish_trade_value_1976-2019.csv")) %>% 
+   clean_names() %>% 
+    select(-seq(from = 7, to = 93, by =2)) %>% 
+ pivot_longer(cols=-c(1:5), names_to = "year", values_to = "value") %>% 
+    mutate(year = gsub("x", "", year) %>% 
+              as.numeric,
+           value = value*1000,
+           unit = "USD",
+           unit_name = "Value")
+)
+
+saveRDS(object = seafood_value, file = here("data", "tidy_data", "seafood_trade_value_product_weight_1976-2019.rds"))
+
+```
 
