@@ -105,6 +105,7 @@ aquaculture_prod <- aqua_prod_raw %>%
    filter(country != "Totals")
 
   
+saveRDS(object = aquaculture_prod, file = here("data", "tidy_data", "aquaculture_production_tidy.rds"))
 
 ```
 
