@@ -15,8 +15,6 @@ library(vroom)
 
 ```
 
-
-
 Capture fisheries production data
 ```{r}
 #Sort the symbols in values out
@@ -174,4 +172,20 @@ Fish trade data - value, temporal
 saveRDS(object = seafood_value, file = here("data", "tidy_data", "seafood_trade_value_product_weight_1976-2019.rds"))
 
 ```
+Fish trade - volume by trade partner in 2019
+```{r}
+
+seafood_trade_volume_2019 <- read_csv(here("data", "raw_data", "fish_trade_volume_by_partner_2019.csv")) %>% 
+   clean_names() %>% 
+   rename(value_2019 = x2019,
+          flag = s) %>% 
+   mutate(flag = case_when(flag == "E" ~ "estimate",
+                           TRUE ~ "reported")) %>% 
+   select(-unit_name)
+
+
+saveRDS(object = seafood_trade_volume_2019, file = here("data", "tidy_data", "seafood_trade_volume_by_partner_2019.rds"))
+
+```
+
 
