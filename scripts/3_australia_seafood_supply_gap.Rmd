@@ -150,7 +150,7 @@ fish_meats <- fbs_aus %>%
   guides(colour=FALSE)+
     labs(x="Year", y=bquote(Food~supply~(kg~capita^-1~yr^-1)))
   
-  ggsave(filename = here("figures", "Supplementary figure - fish and meat consumption rates.jpg"), device="jpg", dpi = 300, width = 9, height=7, units = "cm")
+  ggsave(filename = here("figures", "Supplementary figure - fish and meat consumption rates.jpg"), device="jpg", dpi = 600, width = 9, height=7, units = "cm")
 
 
 
@@ -246,7 +246,7 @@ adj_fbs_aus %>%
 
 
 
-ggsave(here("figures", "Supplementary figure - proportion of supply by source.jpg"), device = "jpg", dpi=300, width = 15, height=7, units = "cm")
+ggsave(here("figures", "Supplementary figure - proportion of supply by source.jpg"), device = "jpg", dpi=600, width = 15, height=7, units = "cm")
 
 ```
 
