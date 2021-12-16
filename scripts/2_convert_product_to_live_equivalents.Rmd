@@ -1,0 +1,23 @@
+---
+title: "Live equivalents conversion"
+output: html_document
+---
+
+libraries
+
+```{r}
+
+library(tidyverse)
+library(janitor)
+library(here)
+
+```
+
+```{r}
+fish_fbs_tidy
+```
+
+```{r}
+
+```
+

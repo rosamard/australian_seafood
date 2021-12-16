@@ -188,4 +188,15 @@ saveRDS(object = seafood_trade_volume_2019, file = here("data", "tidy_data", "se
 
 ```
 
+Full food balance data - tidied to Australia only to speed up read in in other scripts
+```{r}
+
+fbs <- readRDS(here("data", "raw_data", "FoodBalanceSheets_E_All_Data_(Normalized).rds"))
+
+fbs_aus <- fbs %>% clean_names() %>% filter(area == "Australia")
+
+saveRDS(object = fbs_aus, file = here("data", "tidy_data", "food_balance_aus_1961-2013.rds"))
+
+```
+
 
