@@ -14,10 +14,32 @@ library(here)
 ```
 
 ```{r}
-fish_fbs_tidy
+
+seafood_trade_products <- readRDS(here("data", "tidy_data", "seafood_trade_volume_product_weight_by_partner_2019.rds")) %>% 
+  filter(reporting_country_name == "Australia")
+
+codes <- readRDS(here("data", "tidy_data", "fao_product_codes.rds")) 
+
+seafood_products_codes <- seafood_trade_products %>% 
+  left_join(codes, by="commodity_name")
+
+seafood_products_codes %>% 
+  group_by(reporting_country_name, commodity_name, partner_country_name, trade_flow_name, fao_code) %>% 
+  summarise(count = n())
+
+
+seafood_products_codes %>% 
+  filter(is.na(value_2019) )
+
 ```
 
 ```{r}
+
+
+
+
+
+
 
 ```
 

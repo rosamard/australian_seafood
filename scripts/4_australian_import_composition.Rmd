@@ -1,0 +1,33 @@
+---
+title: "Decomposing Australia's imports"
+output: html_document
+---
+
+
+```{r}
+
+libs <- c("tidyverse", "janitor", "here", "ggpubr")
+
+lapply(X=libs, FUN=library, character.only = TRUE)
+
+```
+
+Read in data
+```{r}
+
+imports <- readRDS(file = here("data", "tidy_data", "gephart_australian_imports.rds"))
+
+
+```
+
+
+```{r}
+
+
+
+  
+  
+  
+  
+```
+

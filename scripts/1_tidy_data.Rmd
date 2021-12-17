@@ -188,6 +188,42 @@ saveRDS(object = seafood_trade_volume_2019, file = here("data", "tidy_data", "se
 
 ```
 
+UN trade codes
+
+```{r}
+
+raw_codes <- read_csv(here("data", "raw_data", "UN_trade_codes.csv"))
+
+names(raw_codes) <- "col"
+
+
+codes <- 
+   separate(data = raw_codes, col = col,  into=letters[1:10], sep = "\"") %>% 
+   select(a, b) %>% 
+   mutate(a = gsub(pattern = ",", replacement = "", x=a)) %>% 
+   rename(fao_code = a,
+          commodity_name = b)
+
+saveRDS(object = codes, file = here("data", "tidy_data", "fao_product_codes.rds"))
+
+
+```
+
+
+
+Seafood trade data from Jessica Gephart for 2018
+```{r}
+
+read_csv(here("data", "raw_data", "model0_2018_AUS_JAG.csv")) %>% 
+   saveRDS(here("data", "tidy_data", "gephart_australian_imports.rds"))
+
+
+```
+
+
+
+
+
 Full food balance data - tidied to Australia only to speed up read in in other scripts
 ```{r}
 
@@ -196,6 +232,23 @@ fbs <- readRDS(here("data", "raw_data", "FoodBalanceSheets_E_All_Data_(Normalize
 fbs_aus <- fbs %>% clean_names() %>% filter(area == "Australia")
 
 saveRDS(object = fbs_aus, file = here("data", "tidy_data", "food_balance_aus_1961-2013.rds"))
+
+```
+
+
+World bank ESG indicators
+```{r}
+
+read_csv(here("data", "raw_data", "world_bank_ESG_data.csv"))
+
+```
+
+
+
+Global slavery index
+```{r}
+
+readxl::read_xlsx(here("data", "raw_data", "FINAL-GSI-2018-DATA-G20-AND-FISHING-1565930304.xlsx"))
 
 ```
 
