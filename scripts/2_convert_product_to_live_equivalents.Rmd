@@ -13,6 +13,7 @@ library(here)
 
 ```
 
+
 ```{r}
 
 seafood_trade_products <- readRDS(here("data", "tidy_data", "seafood_trade_volume_product_weight_by_partner_2019.rds")) %>% 
