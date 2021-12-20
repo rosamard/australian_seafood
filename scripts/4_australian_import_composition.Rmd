@@ -6,7 +6,7 @@ output: html_document
 
 ```{r}
 
-libs <- c("tidyverse", "janitor", "here", "ggpubr")
+libs <- c("tidyverse", "janitor", "here", "ggpubr", "RColorBrewer")
 
 lapply(X=libs, FUN=library, character.only = TRUE)
 
@@ -25,26 +25,29 @@ unique(aus_imports$trade_flow_name)
 Import trends by partner 
 ```{r}
 
-
-imports_totals_LE <- 
-  aus_imports %>% 
-  filter(cf!=0) %>% 
-  drop_na(cf) %>% 
-  filter(!hs_name %in% c("Ornamental freshwater fish, live" ,"Ornamental fish, live, other") & partner_country_name!= "Australia") %>% 
-  group_by(partner_country_name) %>% 
-  summarise(value_le = sum(value_LE)) %>% 
-  arrange(-value_le) %>% 
-  mutate(cum_prop_le = cumsum(value_le)/sum(value_le)) %>% 
+imports_totals_LE <-
+  aus_imports %>%
+  filter(! (mean_cf==0 | median_cf==0)) %>%
+  drop_na(mean_cf, median_cf) %>%
+  filter(!hs_name %in% c("Ornamental freshwater fish, live" ,"Ornamental fish, live, other") & partner_country_name!= "Australia") %>%
+  group_by(partner_country_name) %>%
+  summarise(value_le_median = sum(value_LE_med_cf),
+            value_le_mean = sum(value_LE_mean_cf)) %>%
+  arrange(-value_le_median) %>%
+  mutate(cum_prop_le_median = cumsum(value_le_median)/sum(value_le_median),
+         cum_prop_le_mean = cumsum(value_le_mean)/sum(value_le_mean)) %>%
+  
   mutate(partner_country_name = case_when(partner_country_name == "Taiwan Province of China" ~ "Taiwan",
                                           partner_country_name == "United States of America" ~ "USA",
                                           partner_country_name == "Korea, Republic of" ~ "Rep. Korea",
                                           partner_country_name == "Viet Nam" ~ "Vietnam",
-                                          TRUE ~ partner_country_name))
+                                          TRUE ~ partner_country_name)) %>% 
+  mutate(country_rank = rank(-value_le_median, ties.method = "average"))
 
 
 imports_totals_products <- 
   aus_imports %>% 
-  filter(cf!=0) %>% 
+  filter(! (mean_cf==0 | median_cf==0)) %>%
   filter(!hs_name %in% c("Ornamental freshwater fish, live" ,"Ornamental fish, live, other")  & partner_country_name!= "Australia") %>% 
   group_by(partner_country_name) %>% 
   summarise(value_product = sum(value_2019)) %>% 
@@ -54,10 +57,10 @@ imports_totals_products <-
                                           partner_country_name == "United States of America" ~ "USA",
                                           partner_country_name == "Korea, Republic of" ~ "Rep. Korea",
                                            partner_country_name == "Viet Nam" ~ "Vietnam",
-                                          TRUE ~ partner_country_name)) %>% 
-  slice(1:20)
-  
-  
+                                          TRUE ~ partner_country_name)) 
+
+
+(check_totals <- c(sum(imports_totals_products$value_product), sum(imports_totals_LE$value_le_median)))
 
 ```
 
@@ -65,14 +68,15 @@ imports_totals_products <-
 Import trends by species group
 ```{r}
 
-top_10_isscaap <- aus_imports %>% 
-  filter(cf!=0) %>% 
+top_isscaap <- aus_imports %>% 
+   filter(! (mean_cf==0 | median_cf==0)) %>%
   filter(!hs_name %in% c("Ornamental freshwater fish, live" ,"Ornamental fish, live, other")  & partner_country_name!= "Australia") %>% 
   group_by(isscaap_name) %>% 
-  summarise(isscaap_value = sum(value_2019)) %>% 
-  arrange(-isscaap_value) %>% 
-  mutate(cum_isscaap_value = cumsum(isscaap_value)/sum(isscaap_value)) %>% 
-  slice(1:10)
+  summarise(isscaap_value_le = sum(value_LE_med_cf)) %>% 
+  arrange(-isscaap_value_le) %>% 
+  mutate(cum_isscaap_value_le = cumsum(isscaap_value_le)/sum(isscaap_value_le)) %>% 
+  slice(1:11) %>% 
+  mutate(isscaap_rank = rank(-isscaap_value_le, ties.method = "average"))
 
 #majority (35%) of our imported products come from an unidentified group of marine fishes where "Fish fillets, frozen" and "Fish not else identified account for the largest groups (45% of product imports)
 
@@ -90,6 +94,37 @@ Figure on import composition
 
 
 ```{r}
+
+import_by_country <- aus_imports %>% 
+  filter(partner_country_name %in% (imports_totals_LE %>% slice(1:20) %>% .$partner_country_name) & isscaap_name %in% top_isscaap$isscaap_name) %>% 
+  group_by(partner_country_name, isscaap_name) %>% 
+  summarise(value_LE= sum(value_LE_med_cf)) %>% 
+  mutate(prop_total = value_LE/sum(value_LE)) %>% 
+  left_join(y=top_isscaap %>% select(isscaap_name, isscaap_rank), by="isscaap_name" ) %>% 
+  left_join(y=imports_totals_LE %>% select(partner_country_name, country_rank), by="partner_country_name")
+
+
+
+ggplot()+
+  geom_tile(data = import_by_country, aes(x=reorder(isscaap_name, isscaap_rank), y= reorder(partner_country_name, country_rank), fill = (value_LE)))+
+  theme_bw()+
+  theme(axis.text.x = element_text(size=7, angle = 45, hjust=1),
+        axis.text.y = element_text(size=7),
+        legend.text = element_text(size=7),
+        legend.title = element_text(size=7),
+        legend.position = "right",
+        axis.title = element_blank(),
+        panel.grid = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "cm"))+
+  scale_fill_gradientn(colors = colorRampPalette(brewer.pal(n=9, name = "Blues"))(200), labels = scales::comma, na.value = "grey80")+
+  labs(fill = "Tonnes - live equivalents")+
+  # annotate("segment", x=-2, xend = -2, y=12.5, yend = 7.5, arrow = arrow(ends = "last", length = unit(0.2, "cm")), size=0.3)+
+  # annotate("text", x=-2.4, y=10, label= "Import quantity", angle=90, size=1.5)+
+  coord_cartesian(xlim = c(1,11), clip = "off")
+  
+
+
+ggsave(filename = here("figures", "Supplementary figure - Australian import composition.jpg"), device="jpg", dpi=600, width = 16, height = 16, units="cm")
 
 ```
 

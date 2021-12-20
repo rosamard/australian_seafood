@@ -201,8 +201,7 @@ CN-8 trade codes
 raw_codes <- read_csv(here("data", "raw_data", "conversion_factors_cn_8_2001_to_2021.csv")) %>% 
    clean_names() %>% 
    filter(year == 2019) %>% 
-   mutate(cn_8 = gsub(" ", "", cn_8)) %>% 
-   select(year, cn_8, cf)
+   mutate(cn_8 = gsub(" ", "", cn_8))
 
 
 
