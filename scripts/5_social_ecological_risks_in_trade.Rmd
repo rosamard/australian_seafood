@@ -1,0 +1,21 @@
+---
+title: "Social and ecological risks in trade"
+output: html_document
+---
+
+```{r}
+
+libs <- c("tidyverse", "here", "janitor", "countrycode")
+
+lapply(X=libs, FUN=library, character.only=TRUE)
+
+```
+
+Read in data
+```{r}
+
+
+
+
+```
+

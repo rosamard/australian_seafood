@@ -172,40 +172,58 @@ Fish trade data - value, temporal
 saveRDS(object = seafood_value, file = here("data", "tidy_data", "seafood_trade_value_product_weight_1976-2019.rds"))
 
 ```
+
+
+
 Fish trade - volume by trade partner in 2019
 ```{r}
 
 seafood_trade_volume_2019 <- read_csv(here("data", "raw_data", "fish_trade_volume_by_partner_2019.csv")) %>% 
    clean_names() %>% 
    rename(value_2019 = x2019,
+          hs_code = commodity_code,
+          hs_name = commodity_name_1,
+          isscaap_name = commodity_name_2,
           flag = s) %>% 
    mutate(flag = case_when(flag == "E" ~ "estimate",
                            TRUE ~ "reported")) %>% 
    select(-unit_name)
 
 
-saveRDS(object = seafood_trade_volume_2019, file = here("data", "tidy_data", "seafood_trade_volume_by_partner_2019.rds"))
+saveRDS(object = seafood_trade_volume_2019, file = here("data", "tidy_data", "seafood_trade_volume_product_weight_by_partner_2019.rds"))
 
 ```
 
-UN trade codes
+CN-8 trade codes
 
 ```{r}
 
-raw_codes <- read_csv(here("data", "raw_data", "UN_trade_codes.csv"))
+raw_codes <- read_csv(here("data", "raw_data", "conversion_factors_cn_8_2001_to_2021.csv")) %>% 
+   clean_names() %>% 
+   filter(year == 2019) %>% 
+   mutate(cn_8 = gsub(" ", "", cn_8)) %>% 
+   select(year, cn_8, cf)
 
-names(raw_codes) <- "col"
 
 
-codes <- 
-   separate(data = raw_codes, col = col,  into=letters[1:10], sep = "\"") %>% 
-   select(a, b) %>% 
-   mutate(a = gsub(pattern = ",", replacement = "", x=a)) %>% 
-   rename(fao_code = a,
-          commodity_name = b)
+saveRDS(object = raw_codes, here("data", "tidy_data", "cn_8_codes.rds"))
 
-saveRDS(object = codes, file = here("data", "tidy_data", "fao_product_codes.rds"))
 
+
+#old raw codes tidy ofr UN trade codes
+
+# names(raw_codes) <- "col"
+# 
+# 
+# codes <- 
+#    separate(data = raw_codes, col = col,  into=letters[1:10], sep = "\"") %>% 
+#    select(a, b) %>% 
+#    mutate(a = gsub(pattern = ",", replacement = "", x=a)) %>% 
+#    rename(fao_code = a,
+#           commodity_name = b)
+# 
+# saveRDS(object = codes, file = here("data", "tidy_data", "fao_product_codes.rds"))
+# 
 
 ```
 
@@ -219,10 +237,6 @@ read_csv(here("data", "raw_data", "model0_2018_AUS_JAG.csv")) %>%
 
 
 ```
-
-
-
-
 
 Full food balance data - tidied to Australia only to speed up read in in other scripts
 ```{r}

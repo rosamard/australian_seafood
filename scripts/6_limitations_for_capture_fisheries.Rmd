@@ -1,0 +1,13 @@
+---
+title: "Limitations in capture fisheries"
+output: html_document
+---
+
+
+```{r}
+libs <- c("tidyverse", "janitor", "here", "RColorBrewer", "ggpubr", "rnaturalearth", "zoo")
+
+lapply(X= libs, FUN=library, character.only=TRUE)
+
+```
+

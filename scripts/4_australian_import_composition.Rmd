@@ -15,19 +15,82 @@ lapply(X=libs, FUN=library, character.only = TRUE)
 Read in data
 ```{r}
 
-imports <- readRDS(file = here("data", "tidy_data", "gephart_australian_imports.rds"))
+aus_imports <- readRDS(file = here("data", "tidy_data", "seafood_trade_volume_live_equivalent_by_partner_2019.rds")) %>% 
+  filter(trade_flow_name == "Imports" & reporting_country_name == "Australia")
+
+
+unique(aus_imports$trade_flow_name)
+```
+
+Import trends by partner 
+```{r}
+
+
+imports_totals_LE <- 
+  aus_imports %>% 
+  filter(cf!=0) %>% 
+  drop_na(cf) %>% 
+  filter(!hs_name %in% c("Ornamental freshwater fish, live" ,"Ornamental fish, live, other") & partner_country_name!= "Australia") %>% 
+  group_by(partner_country_name) %>% 
+  summarise(value_le = sum(value_LE)) %>% 
+  arrange(-value_le) %>% 
+  mutate(cum_prop_le = cumsum(value_le)/sum(value_le)) %>% 
+  mutate(partner_country_name = case_when(partner_country_name == "Taiwan Province of China" ~ "Taiwan",
+                                          partner_country_name == "United States of America" ~ "USA",
+                                          partner_country_name == "Korea, Republic of" ~ "Rep. Korea",
+                                          partner_country_name == "Viet Nam" ~ "Vietnam",
+                                          TRUE ~ partner_country_name))
+
+
+imports_totals_products <- 
+  aus_imports %>% 
+  filter(cf!=0) %>% 
+  filter(!hs_name %in% c("Ornamental freshwater fish, live" ,"Ornamental fish, live, other")  & partner_country_name!= "Australia") %>% 
+  group_by(partner_country_name) %>% 
+  summarise(value_product = sum(value_2019)) %>% 
+  arrange(-value_product) %>% 
+  mutate(cum_prop_product = cumsum(value_product)/sum(value_product)) %>% 
+  mutate(partner_country_name = case_when(partner_country_name == "Taiwan Province of China" ~ "Taiwan",
+                                          partner_country_name == "United States of America" ~ "USA",
+                                          partner_country_name == "Korea, Republic of" ~ "Rep. Korea",
+                                           partner_country_name == "Viet Nam" ~ "Vietnam",
+                                          TRUE ~ partner_country_name)) %>% 
+  slice(1:20)
+  
+  
+
+```
+
+
+Import trends by species group
+```{r}
+
+top_10_isscaap <- aus_imports %>% 
+  filter(cf!=0) %>% 
+  filter(!hs_name %in% c("Ornamental freshwater fish, live" ,"Ornamental fish, live, other")  & partner_country_name!= "Australia") %>% 
+  group_by(isscaap_name) %>% 
+  summarise(isscaap_value = sum(value_2019)) %>% 
+  arrange(-isscaap_value) %>% 
+  mutate(cum_isscaap_value = cumsum(isscaap_value)/sum(isscaap_value)) %>% 
+  slice(1:10)
+
+#majority (35%) of our imported products come from an unidentified group of marine fishes where "Fish fillets, frozen" and "Fish not else identified account for the largest groups (45% of product imports)
+
+aus_imports %>% 
+  filter(isscaap_name %in% c("Marine fishes not identified")) %>% 
+  group_by(commodity_name) %>% 
+  summarise(value_product = sum(value_2019)) %>% 
+  arrange(-value_product) %>% 
+  mutate(cum_value_product = cumsum(value_product)/sum(value_product))
 
 
 ```
+
+Figure on import composition
 
 
 ```{r}
 
-
-
-  
-  
-  
-  
 ```
+
 
