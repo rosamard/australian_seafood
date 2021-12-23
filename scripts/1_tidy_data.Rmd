@@ -11,6 +11,8 @@ library(janitor)
 library(here)
 library(countrycode)
 library(vroom)
+library(raster)
+library(sf)
 
 
 ```
@@ -237,6 +239,7 @@ read_csv(here("data", "raw_data", "model0_2018_AUS_JAG.csv")) %>%
 
 ```
 
+
 Full food balance data - tidied to Australia only to speed up read in in other scripts
 ```{r}
 
@@ -249,10 +252,23 @@ saveRDS(object = fbs_aus, file = here("data", "tidy_data", "food_balance_aus_196
 ```
 
 
-World bank ESG indicators
+World bank ESG indicators for government effectiveness - taken from World Governance indicators
 ```{r}
 
-read_csv(here("data", "raw_data", "world_bank_ESG_data.csv"))
+wb_ESG <- read_csv(here("data", "raw_data", "world_bank_ESG_data.csv")) 
+
+gov_eff <- wb_ESG %>% 
+   clean_names() %>% 
+   filter(series_name == "Government Effectiveness: Estimate") %>% 
+   pivot_longer(cols = -c(country_name, country_code, series_name, series_code), names_to = "year", values_to =  "gov_effect") %>% 
+   mutate(year = substring(text=year, first = 2, last = 5) %>% 
+             as.numeric,
+          gov_effect = gov_effect %>% as.numeric) %>% 
+   drop_na(gov_effect) %>% 
+   select(country_name, country_code, year, gov_effect) %>% 
+   rename(iso3c = country_code)
+
+saveRDS(object = gov_eff, file = here("data", "tidy_data", "government_effectiveness.rds"))
 
 ```
 
@@ -261,8 +277,44 @@ read_csv(here("data", "raw_data", "world_bank_ESG_data.csv"))
 Global slavery index
 ```{r}
 
-readxl::read_xlsx(here("data", "raw_data", "FINAL-GSI-2018-DATA-G20-AND-FISHING-1565930304.xlsx"))
+read_csv(file = here("data", "raw_data", "gsi.csv")) %>% 
+   saveRDS(file = here("data", "tidy_data", "gsi.rds"))
+
+```
+Environmental Performance Index
+```{r}
+
+epi_2018 <- read_csv(here("data", "raw_data", "epi_2018.csv"))
+epi_2020 <- read_csv(here("data", "raw_data", "epi_2020.csv"))
+
+ecosystem_viability <- epi_2020 %>% select(iso, country, ECO.new) %>% 
+   rename(iso3c = iso)
+
+saveRDS(object = ecosystem_viability, file = here("data", "tidy_data", "ecosystem_vaibility.rds"))
+
 
 ```
 
+
+Spatialised Australian landings raster
+```{r}
+
+
+wgs_84 <- "EPSG:4236"
+
+aus_spatial <- readRDS(here("data/raw_data/aus_landings.rds")) %>% 
+   group_by(Cell, LatCentre, LonCentre) %>% 
+   summarise(reported = sum(Reported)) %>% 
+   st_as_sf(coords = c("LonCentre", "LatCentre"))
+
+raster_0.5 <- raster(crs=wgs_84, res=0.5)
+points <- st_coordinates(aus_spatial$geometry)
+
+
+aus_fishing <- rasterize(points, raster_0.5, field = aus_spatial$reported, fun = sum)
+
+plot(aus_fishing)
+writeRaster(x=aus_fishing, filename = here("data/spatial/aus_industrial_fishing.tif"), overwrite=TRUE)
+
+```
 

@@ -39,6 +39,9 @@ imports_totals_LE <-
     mutate(country_rank = rank(-value_le_median, ties.method = "average"))
 
 
+saveRDS(object = imports_totals_LE, file = here("data", "tidy_data", "Aus_import_country_totals_live_equiv.rds"))
+
+
 imports_totals_products <- 
   aus_imports %>% 
   filter(! (mean_cf==0 | median_cf==0)) %>%
@@ -116,7 +119,7 @@ ggplot()+
         axis.title = element_blank(),
         panel.grid = element_blank(),
         plot.margin = unit(c(0,0,0,0), "cm"))+
-  scale_fill_gradientn(colors = colorRampPalette(brewer.pal(n=9, name = "RdPu"))(200), labels = scales::comma, na.value = "grey80")+
+  scale_fill_gradientn(colors = colorRampPalette(brewer.pal(n=9, name = "PuBu"))(200), labels = scales::comma, na.value = "grey80")+
   labs(fill = "Tonnes - live equivalents")+
   # annotate("segment", x=-2, xend = -2, y=12.5, yend = 7.5, arrow = arrow(ends = "last", length = unit(0.2, "cm")), size=0.3)+
   # annotate("text", x=-2.4, y=10, label= "Import quantity", angle=90, size=1.5)+

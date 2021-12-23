@@ -5,9 +5,189 @@ output: html_document
 
 
 ```{r}
-libs <- c("tidyverse", "janitor", "here", "RColorBrewer", "ggpubr", "rnaturalearth", "zoo")
+libs <- c("tidyverse", "janitor", "here", "RColorBrewer", "ggpubr", "rnaturalearth", "zoo", "geojsonio", "sf", "rmapshaper")
 
 lapply(X= libs, FUN=library, character.only=TRUE)
 
 ```
+
+
+Shapefiles
+```{r}
+
+bbox <- rnaturalearth::ne_download(scale=50, type = "wgs84_bounding_box",  category = "physical" , returnclass = "sf")
+
+world_shp <- rnaturalearth::ne_countries(scale = 50, returnclass = "sf")
+
+aus_shp <- world_shp %>% filter(iso_a3=="AUS")
+
+aus_open_seas <- world_shp %>% filter(region_un=="Seven seas (open ocean)" | iso_a3=="AUS")
+
+fao_areas <- download.file("http://www.fao.org/fishery/geoserver/fifao/ows?service=WFS&request=GetFeature&version=1.0.0&typeName=fifao:FAO_AREAS_CWP&outputFormat=json", dest="FAO.json")
+
+fao_areas <- geojsonio::geojson_read("FAO.json", what = "sp") %>% sf::st_as_sf() %>% rmapshaper::ms_simplify()
+
+
+```
+
+Create map thumbnails
+```{r}
+
+
+(aus_map <- ggplot()+
+  geom_sf(data=  sf::st_crop(aus_open_seas, c(xmin = 110, xmax=200, ymin = -42, ymax=-7)), fill="grey90", colour=NA)+
+
+  theme_bw()+
+   theme(panel.grid = element_blank())
+)
+
+unique(world_shp$region_un)
+
+```
+
+Read in fisheries data
+```{r}
+
+(capture_production_aus <- readRDS(here("data/tidy_data/capture_production_tidy.rds")) %>% 
+  filter(iso3c =="AUS")
+)
+
+
+
+```
+
+
+
+Explore data
+```{r}
+unique(capture_production_aus$species)
+unique(capture_production_aus$fishing_area)
+
+
+(fishing_areas_df <- 
+  capture_production_aus %>% 
+  filter(!grepl("Inland", fishing_area)) %>% 
+  filter(year %in% c(2015, 2016, 2017)) %>% 
+  group_by(fishing_area, year) %>% 
+  summarise(value=sum(value)) %>% 
+  ungroup() %>% 
+  group_by(fishing_area) %>% 
+  summarise(value=mean(value)) %>% 
+  arrange(-value) %>% 
+    mutate(prop = value/sum(value))
+)
+
+(
+marine_spp <- capture_production_aus %>% 
+  filter(!grepl("Inland", fishing_area)) %>% 
+  filter(year=="2017") %>% 
+  group_by(species) %>% 
+  summarise(value=sum(value)) %>% 
+  arrange(-value)
+  )
+  
+marine_total <- capture_production_aus %>% 
+  filter(!grepl("Inland", fishing_area)) %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value))
+
+top_10_marine_spp_totals <- capture_production_aus %>% 
+  filter(!grepl("Inland", fishing_area)) %>% 
+  group_by(species, year) %>% 
+  summarise(value=sum(value)) %>% 
+  filter(species %in% marine_spp$species[1:10])
+  
+other_marine_spp_totals <- capture_production_aus %>% 
+  filter(!grepl("Inland", fishing_area)) %>% 
+  group_by(species, year) %>% 
+  summarise(value=sum(value)) %>% 
+  filter(!species %in% marine_spp$species[1:10]) 
+
+length(unique(other_marine_spp_totals$species)) #191 other species or species groups make up the surplus
+```
+
+
+Plot landings
+```{r}
+totals_for_plot <- 
+  bind_rows(
+    top_10_marine_spp_totals,
+    
+    other_marine_spp_totals %>% 
+      group_by(year) %>% 
+      summarise(value=sum(value)) %>% 
+    mutate(species = "Other species groups")
+)
+
+
+species_levels <- c(marine_spp$species[1:10], "Other species groups")
+
+
+
+p <- 
+  ggplot(data = capture_production_aus %>%  
+             filter(species %in% top_spp$species)
+         )+
+  geom_line(aes(x=year, y=value))+
+  facet_grid(cols = vars(fishing_area), rows = vars(species))+
+  theme_bw()+
+  theme(text=element_text(size=6))
+
+
+(p1 <- ggplot() +
+  geom_area(data = totals_for_plot %>% 
+              mutate(species = factor(species, levels = rev(species_levels))), 
+            aes(x=year, y=value/1000, fill = species))+
+     geom_line(data = marine_totals, aes(x=year, y=value/1000), colour="grey80", linetype=1)+
+  scale_fill_manual(values = (colorRampPalette(brewer.pal(n=9, name = "YlGnBu"))(11)))+
+    scale_x_continuous(expand = c(0,0))+
+    scale_y_continuous(expand = c(0,10))+
+    theme_pubr()+
+    theme(panel.grid = element_blank(),
+          legend.position = c(0.17, 0.65),
+          legend.key.size = unit(0.3, "cm"),
+          legend.key = element_rect(colour = NA, size=0.2, fill = "transparent"),
+          legend.title = element_blank(),
+          legend.text = element_text(size=6),
+          text = element_text(size = 8),
+          plot.background = element_rect(fill="transparent", colour=NA),
+          panel.background = element_rect(fill="transparent",),
+          legend.background = element_rect(fill="transparent"))+
+    labs(y="Landings (1000s tonnes)", x="Year")
+)
+  
+ggsave(filename = here("explore/cottrell_explore/fisheries_aus_region_species.jpg"), device="jpg", dpi = 600, height = 28, width = 30, units="cm")
+```
+
+
+Map with landings and fishing area proportions
+
+```{r}
+
+fao_areas_w_fishing <- fao_areas %>% filter(NAME_EN %in% c("Indian Ocean, Eastern", "Pacific, Southwest", "Pacific, Western Central",  "Indian Ocean, Antarctic")) %>% left_join(fishing_areas, by=c("NAME_EN" = "fishing_area")) 
+
+
+aus_fishing <- raster(here("data/spatial/aus_industrial_fishing.tif"))
+
+ggplot()+
+  geom_sf(data = fao_areas_w_fishing, aes(fill=value))+
+  geom_sf(data= sf::st_crop(aus_shp , c(xmin = 110, xmax=160, ymin = -42, ymax=-7)), fill="lemonchiffon2", colour=NA)+
+  scale_fill_gradientn(colours = brewer.pal(n=9, name = "Blues"))+
+  theme_bw()+
+  theme()
+
+
+
+
+aus_map+
+  annotation_custom(ggplotGrob(p1), xmin = 122, xmax = 146, ymin = -32.5, ymax = -18)+
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+
+ggsave(filename = here("explore/cottrell_explore/time_series_aussie_map.jpg"), device="jpg", dpi=600, width = 18, height = 18, units = "cm")
+
+
+```
+
 
