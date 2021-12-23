@@ -167,12 +167,48 @@ Map with landings and fishing area proportions
 fao_areas_w_fishing <- fao_areas %>% filter(NAME_EN %in% c("Indian Ocean, Eastern", "Pacific, Southwest", "Pacific, Western Central",  "Indian Ocean, Antarctic")) %>% left_join(fishing_areas, by=c("NAME_EN" = "fishing_area")) 
 
 
-aus_fishing <- raster(here("data/spatial/aus_industrial_fishing.tif"))
+aus_fishing <- raster(here("data/spatial/aus_industrial_fishing.tif")) 
+aus_fishing_raster_blank <- raster(crs=wgs_84, extent(c(xmin = 70, xmax = 180, ymin=-60, ymax=18))) 
+
+aus_fishing_aus <- crop(aus_fishing, aus_fishing_raster_blank)
+
+plot(aus_fishing)
+plot(aus_fishing_aus)
+  
+aus_fishing_aus_df <- aus_fishing_aus %>%  as("SpatialPixelsDataFrame") %>% data.frame()
+
+
+ggplot(data = aus_fishing_aus_df)+
+  geom_sf(data= sf::st_crop(aus_shp , c(xmin = 110, xmax=160, ymin = -42, ymax=-7)), fill="grey90", colour="black", size=0.1)+
+  geom_tile(aes(x=x,y=y, fill=(aus_industrial_fishing)))+
+  scale_fill_gradientn(colours = brewer.pal(n=9, "BuPu"),
+                       trans = "log10",
+                       breaks = c(0.001, 1.000, 1000),
+                       labels = c("0.001", "1.000", "1000"))+
+  scale_y_continuous(expand = c(0,0))+
+  scale_x_continuous(expand = c(0,0))+
+  coord_sf(crs = wgs_84)+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        text = element_text(size=8),
+        legend.text = element_text(size=7),
+        legend.title = element_text(size=7),
+        legend.position = c(0.1, 0.65),
+        legend.background = element_rect(fill="transparent"))+
+  labs(fill="Landings (tonnes)")+
+  guides(fill = guide_colorbar(barwidth = unit(0.2, "cm")))
+
+ggsave(here("explore/cottrell_explore/spatialised_landings.jpg"), width = 8, height = 6, units = "cm")
+
 
 ggplot()+
   geom_sf(data = fao_areas_w_fishing, aes(fill=value))+
   geom_sf(data= sf::st_crop(aus_shp , c(xmin = 110, xmax=160, ymin = -42, ymax=-7)), fill="lemonchiffon2", colour=NA)+
   scale_fill_gradientn(colours = brewer.pal(n=9, name = "Blues"))+
+
   theme_bw()+
   theme()
 
