@@ -113,8 +113,7 @@ ggplot()+
   scale_size_continuous(breaks = c(0.001, 0.01, 0.1, 0.2, 0.3))+
   coord_cartesian(xlim = c(10,80), clip="off")+
   #annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 33, ymax=42)+ by the legend
-  annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 33, ymax=42)
-  
+  annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 33, ymax=42)+
 
   labs(x="Vulnerability to slavery", y="Ecosystem viability", colour="Government effectiveness", size="Proportion of seafood imports")
   #geom_smooth(mapping = aes(x=gsi_vuln, y=ecosystem_viability), formula = y~s(x), method = "gam", level=0)

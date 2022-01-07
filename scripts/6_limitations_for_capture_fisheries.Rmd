@@ -5,21 +5,53 @@ output: html_document
 
 
 ```{r}
-libs <- c("tidyverse", "janitor", "here", "RColorBrewer", "ggpubr", "rnaturalearth", "zoo", "geojsonio", "sf", "rmapshaper")
+libs <- c("tidyverse", "janitor", "here", "RColorBrewer", "ggpubr", "rnaturalearth", "zoo", "geojsonio", "sf", "rmapshaper", "mapmisc", "purrr", "ggthemes")
 
-lapply(X= libs, FUN=library, character.only=TRUE)
+lapply(libs, library, character.only=TRUE)
 
 ```
+
+Projections
+```{r}
+
+wgs_84 <- "EPSG:4326"
+
+mollweide <- "ESRI:54009"
+
+mollweide_pacific <- "+proj=moll +lon_0=150 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs +towgs84=0,0,0"
+
+gp_pacific <- "+proj=cea +lon_0=150 +lat_ts=45 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs "
+
+```
+
 
 
 Shapefiles
 ```{r}
 
-bbox <- rnaturalearth::ne_download(scale=50, type = "wgs84_bounding_box",  category = "physical" , returnclass = "sf")
+bbox_shp <- rnaturalearth::ne_download(scale=50, type = "wgs84_bounding_box",  category = "physical" , returnclass = "sf")
 
-world_shp <- rnaturalearth::ne_countries(scale = 50, returnclass = "sf")
+world_shp <- rnaturalearth::ne_countries(scale = 50, returnclass = "sf") %>% rmapshaper::ms_simplify()
 
-world_shp_2 <- rnaturalearth::ne_coastline(scale = 50, returnclass = "sf")
+
+
+#create shapefile tools for pacific mollweide projection
+# offset <- 180 - 150
+# 
+# polygon <- st_polygon(x = list(rbind(c(-0.0001-offset, 90),
+#                                      c(0-offset, 90),
+#                                      c(0-offset, -90),
+#                                      c(-0.0001-offset, -90),
+#                                      c(-0.0001-offset, 90)))) %>%
+#   st_sfc() %>%
+#   st_set_crs(4326)
+
+
+world_shape_pacific <- world_shp %>% st_shift_longitude() %>% st_transform(crs = mollweide)
+
+# world_shp_pacific <- world_shp %>% st_difference(polygon) %>% st_transform(crs = mollweide_pacific)
+bbox_pacific <- bbox_shp %>% st_shift_longitude() %>% st_transform(crs = mollweide)
+
 
 aus_shp <- world_shp %>% filter(iso_a3=="AUS")
 
@@ -54,6 +86,8 @@ Read in fisheries data
   filter(iso3c =="AUS")
 )
 
+aus_fishing <- raster(here("data/spatial/aus_industrial_fishing.tif")) 
+aus_fishing_pacific <- projectRaster(from = aus_fishing, crs = mollweide_pacific)
 
 
 ```
@@ -88,7 +122,7 @@ marine_spp <- capture_production_aus %>%
   arrange(-value)
   )
   
-marine_total <- capture_production_aus %>% 
+marine_totals <- capture_production_aus %>% 
   filter(!grepl("Inland", fishing_area)) %>% 
   group_by(year) %>% 
   summarise(value=sum(value))
@@ -118,47 +152,39 @@ totals_for_plot <-
     other_marine_spp_totals %>% 
       group_by(year) %>% 
       summarise(value=sum(value)) %>% 
-    mutate(species = "Other species groups")
+    mutate(species = "Other spp.")
 )
 
 
-species_levels <- c(marine_spp$species[1:10], "Other species groups")
+species_levels <- c(marine_spp$species[1:10], "Other spp.")
 
 
 
-p <- 
-  ggplot(data = capture_production_aus %>%  
-             filter(species %in% top_spp$species)
-         )+
-  geom_line(aes(x=year, y=value))+
-  facet_grid(cols = vars(fishing_area), rows = vars(species))+
-  theme_bw()+
-  theme(text=element_text(size=6))
-
-
-(p1 <- ggplot() +
+(species_landings <- ggplot() +
   geom_area(data = totals_for_plot %>% 
-              mutate(species = factor(species, levels = rev(species_levels))), 
+              mutate(species = factor(species, levels = (species_levels))), 
             aes(x=year, y=value/1000, fill = species))+
      geom_line(data = marine_totals, aes(x=year, y=value/1000), colour="grey80", linetype=1)+
-  scale_fill_manual(values = (colorRampPalette(brewer.pal(n=9, name = "YlGnBu"))(11)))+
-    scale_x_continuous(expand = c(0,0))+
-    scale_y_continuous(expand = c(0,10))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(n=9, name = "YlGnBu"))(11)))+
+    # scale_x_continuous(expand = c(0,0))+
+    # scale_y_continuous(expand = c(0,10))+
     theme_pubr()+
     theme(panel.grid = element_blank(),
-          legend.position = c(0.17, 0.65),
-          legend.key.size = unit(0.3, "cm"),
+          legend.position = c(0.23, 0.74),
+          legend.key.size = unit(0.21, "cm"),
           legend.key = element_rect(colour = NA, size=0.2, fill = "transparent"),
           legend.title = element_blank(),
-          legend.text = element_text(size=6),
-          text = element_text(size = 8),
-          plot.background = element_rect(fill="transparent", colour=NA),
-          panel.background = element_rect(fill="transparent",),
-          legend.background = element_rect(fill="transparent"))+
+          legend.text = element_text(size=6.5),
+          text = element_text(size = 6),
+          #plot.margin = unit(c(0,0,0,0), "cm"),
+          # plot.background = element_rect(fill="transparent", colour=NA),
+          # panel.background = element_rect(fill="transparent",),
+          legend.background = element_rect(fill="transparent")
+          )+
     labs(y="Landings (1000s tonnes)", x="Year")
 )
   
-ggsave(filename = here("explore/cottrell_explore/fisheries_aus_region_species.jpg"), device="jpg", dpi = 600, height = 28, width = 30, units="cm")
+ggsave(filename = here("explore/cottrell_explore/fisheries_aus_region_species.jpg"), device="jpg", dpi = 600,width = 9, height = 6,  units="cm")
 ```
 
 
@@ -169,69 +195,304 @@ Map with landings and fishing area proportions
 fao_areas_w_fishing <- fao_areas %>% filter(NAME_EN %in% c("Indian Ocean, Eastern", "Pacific, Southwest", "Pacific, Western Central",  "Indian Ocean, Antarctic")) %>% left_join(fishing_areas, by=c("NAME_EN" = "fishing_area")) 
 
 
-aus_fishing <- raster(here("data/spatial/aus_industrial_fishing.tif")) 
-aus_fishing_raster_blank <- raster(crs=wgs_84, extent(c(xmin = 70, xmax = 180, ymin=-60, ymax=18))) 
+#total global fisheries for Australia
 
-aus_fishing_aus <- crop(aus_fishing, aus_fishing_raster_blank)
+aus_fishing_pacific_df <- aus_fishing_pacific %>% as("SpatialPixelsDataFrame") %>% data.frame()
 
-plot(aus_fishing)
-plot(aus_fishing_aus)
-  
-aus_fishing_aus_df <- aus_fishing_aus %>%  as("SpatialPixelsDataFrame") %>% data.frame()
-
-
-ggplot()+
-  
-  geom_tile(data = aus_fishing_aus_df, aes(x=x,y=y, fill=(aus_industrial_fishing)))+
-   
-  geom_sf(data= sf::st_crop(aus_shp , c(xmin = 110, xmax=160, ymin = -42, ymax=-7)), fill="lemonchiffon2", colour="black", size=0.1)+
-  geom_sf(data= sf::st_crop(x=world_shp_2,  y=c(xmin = 70, xmax=180, ymin = -42, ymax=12)), colour="black", size=0.2)+
+global_aus_fishing <- 
+  ggplot()+
+  geom_tile(data = aus_fishing_pacific_df, aes(x=x,y=y, fill=(aus_industrial_fishing+1)))+
+  geom_sf(data= world_shp_pacific, fill="lemonchiffon2", colour="black", size=0.1)+
   scale_fill_gradientn(colours = brewer.pal(n=9, "BuPu"),
                        trans = "log10",
-                       breaks = c(0.001, 1.000, 1000),
-                       labels = c("0.001", "1.000", "1000"))+
-  scale_y_continuous(expand = c(0,0))+
-  scale_x_continuous(expand = c(0,0))+
-  coord_sf(crs = wgs_84)+
-  theme_bw()+
+                       breaks = c(0, 1, 10, 100, 1000),
+                       # labels = c("0", "0.001", "1.000", "1000")
+  )+
+  theme_pubr()+
   theme(panel.grid = element_blank(),
         axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.margin = unit(c(0,-0.5,0,-0.5), "cm"),
-        text = element_text(size=8),
-        legend.box.spacing = unit(c(-0.2,0,0,0), "cm"),
-        legend.text = element_text(size=6),
-        legend.title = element_text(size=6),
+        legend.title = element_text(size=7),
+        legend.text = element_text(size=7),
         legend.position = "bottom",
-        legend.background = element_rect(fill="transparent"))+
+        legend.box.spacing = unit(0, "cm"))+
+
   labs(fill="Landings (tonnes)")+
   guides(fill = guide_colorbar(barheight = unit(0.13, "cm"), title.position = "top", title.hjust = 0.5))
 
-ggsave(here("explore/cottrell_explore/spatialised_landings.jpg"), width = 8, height = 6.7, units = "cm")
+ggsave(here("explore/cottrell_explore/spatialised_landings_global.jpg"), width = 9, height = 6, units = "cm")
 
 
-# ggplot()+
-#   geom_sf(data = fao_areas_w_fishing, aes(fill=value))+
-#  
-#   geom_sf(data= sf::st_crop(aus_shp , c(xmin = 110, xmax=160, ymin = -42, ymax=-7)), fill="lemonchiffon2", colour=NA)+
-#   scale_fill_gradientn(colours = brewer.pal(n=9, name = "Blues"))+
+#plot for just water surrounding australia
+
+# aus_fishing_raster_blank <- raster(crs=wgs_84, extent(c(xmin = 70, xmax = 180, ymin=-60, ymax=18))) 
 # 
+# aus_fishing_aus <- crop(aus_fishing, aus_fishing_raster_blank)
+# 
+#   
+# aus_fishing_aus_df <- aus_fishing_aus %>%  as("SpatialPixelsDataFrame") %>% data.frame()
+# 
+# 
+# 
+# aus_fishing_map <- 
+#   ggplot()+
+#   
+#   geom_tile(data = aus_fishing_aus_df, aes(x=x,y=y, fill=(aus_industrial_fishing+1)))+
+#    
+#   geom_sf(data= sf::st_crop(aus_shp , c(xmin = 110, xmax=160, ymin = -62, ymax=-7)), fill="lemonchiffon2", colour="black", size=0.1)+
+#   geom_sf(data= sf::st_crop(x=world_shp_2,  y=c(xmin = 70, xmax=180, ymin = -62, ymax=12)), colour="black", size=0.2)+
+#   scale_fill_gradientn(colours = brewer.pal(n=9, "BuPu"),
+#                        trans = "log10",
+#                        # breaks = c(0, 0.001, 1.000, 1000),
+#                        # labels = c("0", "0.001", "1.000", "1000")
+#                        )+
+#   scale_y_continuous(expand = c(0,0))+
+#   scale_x_continuous(expand = c(0,0))+
+#   coord_sf(crs = wgs_84)+
 #   theme_bw()+
-#   theme()
+#   theme(panel.grid = element_blank(),
+#         axis.title = element_blank(),
+#         axis.text = element_blank(),
+#         axis.ticks = element_blank(),
+#         plot.margin = unit(c(0,-0.5,0,-0.5), "cm"),
+#         text = element_text(size=8),
+#         legend.box.spacing = unit(c(-0.2,0,0,0), "cm"),
+#         legend.text = element_text(size=6),
+#         legend.title = element_text(size=6),
+#         legend.position = "bottom",
+#         legend.background = element_rect(fill="transparent"))+
+#   labs(fill="Landings (tonnes)")+
+#   guides(fill = guide_colorbar(barheight = unit(0.13, "cm"), title.position = "top", title.hjust = 0.5))
 # 
 
+```
+
+Combine temporal and spatial landings
+```{r}
+time_space_landings <- 
+  ggarrange(species_landings,
+          global_aus_fishing,
+          labels = c("a", "b"),
+          font.label = list(size=9),
+          nrow = 1,
+          ncol=2,
+          widths = c(0.5,0.52))
+
+ggsave(here("explore/cottrell_explore/temporal_spatial_landings.jpg"), device = "jpg", dpi=600, height = 6, width = 17, units = "cm")
+```
 
 
-aus_map+
-  annotation_custom(ggplotGrob(p1), xmin = 122, xmax = 146, ymin = -32.5, ymax = -18)+
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
 
 
-ggsave(filename = here("explore/cottrell_explore/time_series_aussie_map.jpg"), device="jpg", dpi=600, width = 18, height = 18, units = "cm")
+Early warning signs in current catch paradigm
+```{r}
+
+aus_fisheries <- 
+  totals_for_plot %>% 
+   group_by(year) %>% 
+    summarise(value=sum(value)) %>%
+    mutate(normalized_value = (value - mean(value))/sd(value),
+           log10_value = log10(value),
+           diff_value = c(0,diff(value)),
+           gam_residuals= resid(mgcv::gam(value~s(year))))  
+  
+
+
+window <- c(0.3, 0.4,0.5, 0.6,0.7)
+
+ews_variables <- function(this_window){
+  
+  assign(paste0("window_", this_window), 
+         
+         
+         aus_fisheries %>% 
+           mutate(Variance = rollapply(data = gam_residuals, 
+                                width = this_window*length(gam_residuals), 
+                                FUN = sd, 
+                                align = "right", 
+                                fill = NA, 
+                                na.rm = T)) %>% 
+    mutate(Mean = rollapply(data = gam_residuals, 
+                            width = this_window*length(gam_residuals), 
+                            FUN = mean, 
+                            align = "right", 
+                            fill = NA, 
+                            na.rm = T)) %>%
+    mutate(CV=Variance/Mean) %>%
+    mutate(AR1 = rollapply(data = gam_residuals, 
+                           width = this_window*length(gam_residuals), 
+                           FUN = function(z,  na.rm = FALSE){
+                             return(acf(z, plot=FALSE)$acf[2])
+                           },  
+                           align = "right", 
+                           fill = NA, 
+                           na.rm = T)) %>% 
+    mutate(return_rate = rollapply(data=gam_residuals,
+                                   width= this_window*length(gam_residuals),
+                                   FUN = function(z, na.rm=FALSE){
+                                     ar1 <- ar.ols(z,demean=FALSE, order.max = 1, aic = FALSE, intercept = FALSE)
+                                     return(return_rate = 1/ar1$ar[1])
+                                   },
+                                   align = "right", 
+                                   fill = NA, 
+                                   na.rm = T)) %>% 
+    mutate(kurtosis = rollapply(data=gam_residuals,
+                                   width=this_window*length(gam_residuals),
+                                   FUN = moments::kurtosis,
+                                   align = "right", 
+                                   fill = NA, 
+                                   na.rm = T)) %>% 
+    mutate(skewness = rollapply(data=gam_residuals,
+                                   width=this_window*length(gam_residuals),
+                                   FUN = moments::skewness,
+                                   align = "right", 
+                                   fill = NA, 
+                                   na.rm = T)) %>% 
+    mutate(Width = this_window)
+    
+    )
+  
+}
+
+
+fisheries_ews <- map_df(window, ews_variables)
+
 
 
 ```
 
+
+
+EWS plots
+```{r}
+
+(landings <- 
+   ggplot(data= totals_for_plot %>% group_by(year) %>% summarise(value=sum(value)),
+       aes(x=year)) +
+  geom_line(aes(y=value), colour="black", size=1.1)+
+   geom_line(aes(y=predict(mgcv::gam(value~s(year)))), size=0.6, colour="purple")+
+    theme_pubr()+
+    theme(
+      text = element_text(size=9),
+      axis.title.x = element_blank()
+      #plot.margin = unit(c(t=0.5, r=0.1,b=0.1,l=0.1), "cm")
+    )+
+    geom_vline(xintercept = 2007, linetype=2, colour="grey80", size=0.75)+
+    scale_y_continuous(breaks = c(0 ,0.5e+5, 1e+5, 1.5e+5,2e+5, 2.5e+5, 3e+5), labels=c("0", "50", "100", "150", "200", "250","300"), limits = c(0, 2.9e+5))+
+    scale_x_continuous(breaks=c(1960,1980,2000,2020), labels = c("1960","1980","2000","2020"), limits = c(1950,2020))+
+    labs(y=bquote(Tonnes~(10^3)))+
+    #annotation_custom(fishing_img, xmin = 1950, 1960, ymin = 1.9e+5, ymax=2.9e+5)+
+    annotate("text", x=1951, y=2.7e+5,label="Total landings", hjust=0, size=2.9)
+)
+
+
+(residuals <- ggplot(fisheries_ews %>% filter(Width==0.5),
+       aes(x=year)) +
+  geom_line(aes(y=gam_residuals), colour="lightblue", size=1.1)+
+  # geom_line(aes(y=Mean), colour="#EA7580", size=1.1)+
+  #geom_line(aes(y=predict(gam(Value~s(Year)))), size=0.6, colour="grey60")+
+    theme_pubr()+
+    theme(
+      text = element_text(size=9),
+      axis.title.x = element_blank()
+      #plot.margin = unit(c(t=0.5, r=0.1,b=0.1,l=0.1), "cm")
+      
+      
+    )+
+    geom_hline(yintercept = 0, linetype=1, colour="grey90", size=0.75)+
+    geom_vline(xintercept = 2007, linetype=2, colour="grey80", size=0.75)+
+    #scale_y_continuous(breaks = c(0 ,0.5e+5, 1e+5, 1.5e+5,2e+5, 2.5e+5), labels=c("0", "50", "100", "150", "200", "250"), limits = c(0, 2.7e+5))+
+    scale_x_continuous(breaks=c(1960,1980,2000,2020), labels = c("1960","1980","2000","2020"), limits = c(1950,2020))+
+    labs(y=bquote(Tonnes~(10^3)))+
+    #annotation_custom(fishing_img, xmin = 1950, 1960, ymin = 1.9e+5, ymax=2.9e+5)+
+   annotate("text", x=1951, y=39e+3,label="GAM residuals", hjust=0, size=2.9)
+
+)
+
+
+(landings_residuals <- ggarrange(landings, residuals, 
+          labels = c("c", "d"),
+          font.label = list(size=9),
+          ncol = 2,
+          nrow = 1))
+
+vars <- ggplot(data=fisheries_ews, aes(x=year, y=Variance))+
+    geom_line()+
+    facet_grid(.~Width)+
+    theme_pubr()+
+      theme(
+        text = element_text(size=9),
+        axis.title.x = element_blank()
+      )+
+      geom_vline(xintercept = 2007, linetype=2, colour="grey80", size=0.75)+
+      scale_y_continuous(breaks = c(8e+3 ,10e+3, 12e+3, 14e+3,16e+3), labels=c("8", "10", "12", "14", "16"))+
+      scale_x_continuous(breaks=c(1960,1980,2000,2020), labels = c("1960","1980","2000","2020"), limits = c(1950,2020))+
+      labs(y=bquote(Variance~(Tx10^3)))
+    
+  
+  ar1 <- ggplot(data=fisheries_ews, aes(x=year, y=AR1))+
+    geom_line()+
+    facet_grid(.~Width)+
+    theme_pubr()+
+      theme(
+        text = element_text(size=9),
+        axis.title.x = element_blank()
+      )+
+      geom_vline(xintercept = 2007, linetype=2, colour="grey80", size=0.75)+
+      #scale_y_continuous(breaks = c(8e+3 ,10e+3, 12e+3, 14e+3,16e+3), labels=c("8", "10", "12", "14", "16"))+
+      scale_x_continuous(breaks=c(1960,1980,2000,2020), labels = c("1960","1980","2000","2020"), limits = c(1950,2020))+
+      labs(y="AR1", x="Year")
+  
+  
+  
+  comp_fisheries <- fisheries_ews %>% 
+    drop_na() %>% 
+    group_by(Width) %>% 
+    nest() %>% 
+    mutate(Normalised_variance = map(data, ~((.$Variance-mean(.$Variance))/sd(.$Variance))),
+           Normalised_AR = map(data, ~((.$AR1-mean(.$AR1))/sd(.$AR1)))) %>% 
+    unnest() %>% 
+    mutate(Composite_index = Normalised_variance+Normalised_AR)
+  
+  
+   comp_index <- ggplot(data=comp_fisheries, aes(x=year, y=Composite_index))+
+    geom_line()+
+    facet_grid(.~Width)+
+    theme_pubr()+
+      theme(
+        text = element_text(size=9),
+        axis.title.x = element_blank()
+      )+
+      geom_vline(xintercept = 2007, linetype=2, colour="grey80", size=0.75)+
+      #scale_y_continuous(breaks = c(8e+3 ,10e+3, 12e+3, 14e+3,16e+3), labels=c("8", "10", "12", "14", "16"))+
+      scale_x_continuous(breaks=c(1960,1980,2000,2020), labels = c("1960","1980","2000","2020"), limits = c(1950,2020))+
+      labs(y=bquote(Composite~index))
+   
+   
+(ews_analysis <- 
+  ggarrange(landings_residuals, vars,ar1, comp_index, 
+           nrow=4, ncol=1,
+           labels = c("", "e", "f", "g"),
+           font.label = list(size=9),
+           heights = c(1,0.75,0.75,0.75))
+)
+```
+
+
+combine mapped time series landings and ews plots
+```{r}
+
+ggarrange(time_space_landings,
+          ews_analysis,
+          ncol = 1,
+          nrow = 2,
+          heights = c(1,3))
+
+
+
+ggsave(here("figures/Figure 3 - landings through time and space - ews.jpg"), dpi=600, device = "jpg", height = 24, width = 17, units = "cm")
+ggsave(here("figures/Figure 3 - landings through time and space - ews.pdf"), dpi=600, device = "pdf", height = 24, width = 17, units = "cm")
+
+```
 
