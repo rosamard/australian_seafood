@@ -1,0 +1,369 @@
+---
+title: "Sentiment analysis around aquaculture"
+output: html_document
+---
+
+libraries
+```{r}
+
+libs <- c("tidyverse", "here", "stringr", "rvest")
+
+lapply(X=libs, FUN = library, character.only =TRUE)
+
+```
+
+
+
+Sentiment analysis 2019
+```{r}
+#LATEST SEARCH ACROSS ALL SECTORS 22/07/19
+
+
+#search terms "(aquaculture OR fish farm) <STATE> Australia"
+
+
+#tasmania
+tasmania <- read_html("https://news.google.com/search?q=(aquaculture%20OR%20fish%20farm)%20tasmania%20australia&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  tasmania %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+
+
+tas_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "Tasmania", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              }))
+                            )
+
+
+#queensland
+
+queensland <- read_html("https://news.google.com/search?q=(aquaculture%20OR%20fish%20farm)%20queensland%20australia&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  queensland %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+qld_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "Queensland", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+
+#south australia
+
+SA <- read_html("https://news.google.com/search?q=(aquaculture%20OR%20fish%20farm)%20south%20australia&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  SA %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+SA_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                           State = "South Australia", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+
+#Western australia
+
+WA <- read_html("https://news.google.com/search?q=(aquaculture%20OR%20fish%20farm)%20western%20australia&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  WA %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+WA_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                           State = "Western Australia", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+#NSW
+
+
+NSW <- read_html("https://news.google.com/search?q=(aquaculture%20OR%20fish%20farm)%20new%20south%20wales%20australia&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  NSW %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+NSW_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "New South Wales", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+
+VIC <- read_html("https://news.google.com/search?q=(aquaculture%20OR%20fish%20farm)%20victoria%20australia&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  NSW %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+VIC_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "Victoria", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+
+
+NT <- read_html("https://news.google.com/search?q=(aquaculture%20OR%20fish%20farm)%20northern%20territory%20australia&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  NT %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+NT_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                           State = "Northern Territory", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+ACT <- read_html("https://news.google.com/search?q=(aquaculture%20OR%20fish%20farm)%20australian%20capital%20territory%20australia&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  ACT %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+ACT_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "Australian Capital Territory", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+aquaculture_headlines <- 
+  bind_rows(tas_headlines, qld_headlines, SA_headlines, VIC_headlines, NSW_headlines, NT_headlines, WA_headlines, ACT_headlines) %>% 
+  mutate(System = "Aquaculture", Sentiment_1="", Sentiment_2="") %>% 
+  select(System, State, Headline, Sentiment_1, Sentiment_2, Metadata) %>% 
+  write_csv("Aquaculture headlines.csv")
+
+
+
+```
+
+
+Sentiment analysis 2022
+
+Google news searches using e.g. aquaculture AND ("Queensland" OR QLD)
+```{r}
+#tasmania
+tasmania <- read_html("https://news.google.com/search?q=aquaculture%20AND%20(tasmania%20OR%20TAS)&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  tasmania %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+
+
+tas_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "Tasmania", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              }))
+                            )
+
+
+#queensland
+
+queensland <- read_html("https://news.google.com/search?q=aquaculture%20AND%20(queensland%20OR%20QLD)&hl=en-AU&gl=AU&ceid=AU%3Aenn") 
+
+headlines <- 
+  queensland %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+qld_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "Queensland", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+
+#south australia
+
+SA <- read_html("https://news.google.com/search?q=aquaculture%20AND%20(%22South%20Australia%22%20OR%20SA)&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  SA %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+SA_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                           State = "South Australia", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+
+#Western australia
+
+WA <- read_html("https://news.google.com/search?q=aquaculture%20AND%20(%22Western%20Australia%22%20OR%20WA)&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  WA %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+WA_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                           State = "Western Australia", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+#NSW
+
+
+NSW <- read_html("https://news.google.com/search?q=aquaculture%20AND%20(%22New%20South%20Wales%22%20OR%20NSW)&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  NSW %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+NSW_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "New South Wales", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+
+VIC <- read_html("https://news.google.com/search?q=aquaculture%20AND%20(%22Victoria%22%20OR%20VIC)&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  NSW %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+VIC_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "Victoria", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+
+
+NT <- read_html("https://news.google.com/search?q=aquaculture%20AND%20(%22Northern%20Territory%22%20OR%20NT)&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  NT %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+NT_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                           State = "Northern Territory", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+ACT <- read_html("https://news.google.com/search?q=aquaculture%20AND%20(%22Australian%20Capital%20Territory%22%20OR%20ACT)&hl=en-AU&gl=AU&ceid=AU%3Aen") 
+
+headlines <- 
+  ACT %>% 
+  html_nodes("article") %>%
+  html_text("span") %>%
+  str_split("(?<=[a-z0-9!?\\.])(?=[A-Z])")
+  
+
+ACT_headlines <- tibble(Headline = unlist(lapply(headlines, '[[', 1)), 
+                            State = "Australian Capital Territory", 
+                            Metadata= unlist(lapply(headlines, function(list_element){
+                                length <- length(list_element)
+                                metadata <- paste(list_element[2:length], collapse = "")
+                                return(metadata)
+                              })))
+
+
+aquaculture_headlines <- 
+  bind_rows(tas_headlines, qld_headlines, SA_headlines, VIC_headlines, NSW_headlines, NT_headlines, WA_headlines, ACT_headlines) %>% 
+  mutate(System = "Aquaculture", Sentiment_1="", Sentiment_2="") %>% 
+  select(System, State, Headline, Sentiment_1, Sentiment_2, Metadata) %>% 
+  write_csv(here("data/tidy_data/aquaculture_headlines_2022.csv"))
+
+
+
+```
+

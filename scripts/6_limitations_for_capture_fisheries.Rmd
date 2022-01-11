@@ -164,8 +164,9 @@ species_levels <- c(marine_spp$species[1:10], "Other spp.")
   geom_area(data = totals_for_plot %>% 
               mutate(species = factor(species, levels = (species_levels))), 
             aes(x=year, y=value/1000, fill = species))+
-     geom_line(data = marine_totals, aes(x=year, y=value/1000), colour="grey80", linetype=1)+
-  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(n=9, name = "YlGnBu"))(11)))+
+    geom_vline(xintercept = 2007, linetype=2, colour="grey80", size=0.75)+
+     #geom_line(data = marine_totals, aes(x=year, y=value/1000), colour="grey80", linetype=1)+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(n=9, name = "PuBu"))(11)))+
     # scale_x_continuous(expand = c(0,0))+
     # scale_y_continuous(expand = c(0,10))+
     theme_pubr()+
@@ -175,8 +176,8 @@ species_levels <- c(marine_spp$species[1:10], "Other spp.")
           legend.key = element_rect(colour = NA, size=0.2, fill = "transparent"),
           legend.title = element_blank(),
           legend.text = element_text(size=6.5),
-          text = element_text(size = 6),
-          #plot.margin = unit(c(0,0,0,0), "cm"),
+          text = element_text(size = 9),
+          plot.margin = unit(c(0.2,0.6, 0.2,0.2), "cm"),
           # plot.background = element_rect(fill="transparent", colour=NA),
           # panel.background = element_rect(fill="transparent",),
           legend.background = element_rect(fill="transparent")
@@ -213,18 +214,21 @@ global_aus_fishing <-
         axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        legend.title = element_text(size=7),
-        legend.text = element_text(size=7),
+        legend.title = element_text(size=8.5),
+        legend.text = element_text(size=8.5),
         legend.position = "bottom",
-        legend.box.spacing = unit(0, "cm"))+
+        legend.background = element_rect(fill="transparent"),
+        legend.box.spacing = unit(0, "cm"),
+        plot.margin = unit(c(0.2,0.3,0.2,0.3), "cm")
+        )+
 
   labs(fill="Landings (tonnes)")+
-  guides(fill = guide_colorbar(barheight = unit(0.13, "cm"), title.position = "top", title.hjust = 0.5))
+  guides(fill = guide_colorbar(barheight = unit(0.11, "cm"), title.position = "top", title.hjust = 0.5))
 
 ggsave(here("explore/cottrell_explore/spatialised_landings_global.jpg"), width = 9, height = 6, units = "cm")
 
 
-#plot for just water surrounding australia
+  #plot for just water surrounding australia
 
 # aus_fishing_raster_blank <- raster(crs=wgs_84, extent(c(xmin = 70, xmax = 180, ymin=-60, ymax=18))) 
 # 
@@ -276,10 +280,10 @@ time_space_landings <-
           labels = c("a", "b"),
           font.label = list(size=9),
           nrow = 1,
-          ncol=2,
-          widths = c(0.5,0.52))
+          ncol=2)
 
-ggsave(here("explore/cottrell_explore/temporal_spatial_landings.jpg"), device = "jpg", dpi=600, height = 6, width = 17, units = "cm")
+
+ggsave(here("explore/cottrell_explore/temporal_spatial_landings.jpg"), device = "jpg", dpi=600, height = 6, width = 18, units = "cm")
 ```
 
 
@@ -402,7 +406,7 @@ EWS plots
     )+
     geom_hline(yintercept = 0, linetype=1, colour="grey90", size=0.75)+
     geom_vline(xintercept = 2007, linetype=2, colour="grey80", size=0.75)+
-    #scale_y_continuous(breaks = c(0 ,0.5e+5, 1e+5, 1.5e+5,2e+5, 2.5e+5), labels=c("0", "50", "100", "150", "200", "250"), limits = c(0, 2.7e+5))+
+    scale_y_continuous(breaks = c(-20e+3 ,0, 20e+3, 40e+3), labels=c("-20", "0", "20", "40"))+
     scale_x_continuous(breaks=c(1960,1980,2000,2020), labels = c("1960","1980","2000","2020"), limits = c(1950,2020))+
     labs(y=bquote(Tonnes~(10^3)))+
     #annotation_custom(fishing_img, xmin = 1950, 1960, ymin = 1.9e+5, ymax=2.9e+5)+
