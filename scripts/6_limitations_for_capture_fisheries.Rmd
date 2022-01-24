@@ -36,21 +36,21 @@ world_shp <- rnaturalearth::ne_countries(scale = 50, returnclass = "sf") %>% rma
 
 
 #create shapefile tools for pacific mollweide projection
-# offset <- 180 - 150
-# 
-# polygon <- st_polygon(x = list(rbind(c(-0.0001-offset, 90),
-#                                      c(0-offset, 90),
-#                                      c(0-offset, -90),
-#                                      c(-0.0001-offset, -90),
-#                                      c(-0.0001-offset, 90)))) %>%
-#   st_sfc() %>%
-#   st_set_crs(4326)
+offset <- 180 - 150
+
+polygon <- st_polygon(x = list(rbind(c(-0.0001-offset, 90),
+                                     c(0-offset, 90),
+                                     c(0-offset, -90),
+                                     c(-0.0001-offset, -90),
+                                     c(-0.0001-offset, 90)))) %>%
+  st_sfc() %>%
+  st_set_crs(4326)
 
 
-world_shape_pacific <- world_shp %>% st_shift_longitude() %>% st_transform(crs = mollweide)
+#world_shp_pacific <- world_shp %>% st_shift_longitude() %>% st_transform(crs = mollweide_pacific)
 
-# world_shp_pacific <- world_shp %>% st_difference(polygon) %>% st_transform(crs = mollweide_pacific)
-bbox_pacific <- bbox_shp %>% st_shift_longitude() %>% st_transform(crs = mollweide)
+world_shp_pacific <- world_shp %>% st_difference(polygon) %>% st_transform(crs = mollweide_pacific)
+#bbox_pacific <- bbox_shp %>% st_shift_longitude() %>% st_transform(crs = mollweide_pacific)
 
 
 aus_shp <- world_shp %>% filter(iso_a3=="AUS")
@@ -96,8 +96,8 @@ aus_fishing_pacific <- projectRaster(from = aus_fishing, crs = mollweide_pacific
 
 Explore data
 ```{r}
-unique(capture_production_aus$species)
-unique(capture_production_aus$fishing_area)
+# unique(capture_production_aus$species)
+# unique(capture_production_aus$fishing_area)
 
 
 (fishing_areas_df <- 
@@ -200,7 +200,7 @@ fao_areas_w_fishing <- fao_areas %>% filter(NAME_EN %in% c("Indian Ocean, Easter
 
 aus_fishing_pacific_df <- aus_fishing_pacific %>% as("SpatialPixelsDataFrame") %>% data.frame()
 
-global_aus_fishing <- 
+(global_aus_fishing <- 
   ggplot()+
   geom_tile(data = aus_fishing_pacific_df, aes(x=x,y=y, fill=(aus_industrial_fishing+1)))+
   geom_sf(data= world_shp_pacific, fill="lemonchiffon2", colour="black", size=0.1)+
@@ -210,7 +210,7 @@ global_aus_fishing <-
                        # labels = c("0", "0.001", "1.000", "1000")
   )+
   theme_pubr()+
-  theme(panel.grid = element_blank(),
+  theme(panel.grid.minor = element_blank(),
         axis.title = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
@@ -219,12 +219,12 @@ global_aus_fishing <-
         legend.position = "bottom",
         legend.background = element_rect(fill="transparent"),
         legend.box.spacing = unit(0, "cm"),
-        plot.margin = unit(c(0.2,0.3,0.2,0.3), "cm")
+        #plot.margin = unit(c(0.2,0.3,0.2,0.3), "cm")
         )+
 
   labs(fill="Landings (tonnes)")+
   guides(fill = guide_colorbar(barheight = unit(0.11, "cm"), title.position = "top", title.hjust = 0.5))
-
+)
 ggsave(here("explore/cottrell_explore/spatialised_landings_global.jpg"), width = 9, height = 6, units = "cm")
 
 
