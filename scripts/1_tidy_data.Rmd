@@ -318,3 +318,35 @@ writeRaster(x=aus_fishing, filename = here("data/spatial/aus_industrial_fishing.
 
 ```
 
+Clean and join sentiment ratings from Scott and Gabriel
+
+```{r}
+
+
+(scott_sentiment <- read_csv(here("data/raw_data/scott_sentiment.csv")) %>% 
+    clean_names() %>% 
+    arrange(state) %>% 
+    dplyr::select(-c(system, sentiment_2, sentiment_1_raw, metadata))
+)
+
+
+
+(gabriel_sentiment <-  read_csv(here("data/raw_data/gabriel_sentiment.csv")) %>% 
+    clean_names() %>% 
+    arrange(state) %>% 
+      dplyr::select(-c(system, sentiment_1, sentiment_2_numerical, metadata))
+)
+
+
+(combined_sentiment <- scott_sentiment %>% 
+   left_join(gabriel_sentiment, by=c("state", "headline")) %>% 
+   mutate(sentiment_1 = if_else(is.na(sentiment_1), true = "NA", sentiment_1),
+           sentiment_2 = if_else(is.na(sentiment_2), true = "NA", sentiment_2)) %>% 
+      mutate(agreement_1_2 = if_else(sentiment_1==sentiment_2, true = TRUE, false = FALSE))
+)
+
+
+write_csv(x = combined_sentiment, file = here("data/raw_data/combined_sentiment.csv"))
+
+```
+

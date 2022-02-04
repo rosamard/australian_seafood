@@ -367,3 +367,21 @@ aquaculture_headlines <-
 
 ```
 
+
+Import agreement results
+
+```{r}
+
+initial_agreemnet <- read_csv(here("data/raw_data/combined_sentiment.csv"))
+
+
+nrow(initial_agreemnet %>% filter(agreement_1_2==TRUE))/nrow(initial_agreemnet) # ~75% agreement in first round
+
+
+
+nrow(initial_agreemnet %>% filter((sentiment_1 == "Positive" & sentiment_2=="Negative") | (sentiment_1 == "Negative" & sentiment_2=="Positive")))/ nrow(initial_agreemnet)*100 # 0.26% of headline where opposite polarity (and it was the same headline)
+
+
+
+```
+
