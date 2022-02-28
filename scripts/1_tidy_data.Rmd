@@ -346,7 +346,34 @@ Clean and join sentiment ratings from Scott and Gabriel
 )
 
 
-write_csv(x = combined_sentiment, file = here("data/raw_data/combined_sentiment.csv"))
+write_csv(x = combined_sentiment, file = here("data/raw_data/combined_sentiment.csv")) %>% 
+  saveRDS(file = here("data/tidy_data/combined_sentiment.rds"))
+
+```
+
+
+Convert agreed sentiment to rds
+```{r}
+
+read_csv(here("data/raw_data/combined_sentiment_agreed.csv")) %>% 
+  saveRDS(file = here("data/tidy_data/combined_sentiment_agreed.rds"))
+
+
+```
+
+
+Tidy Aus state level aquaculture data
+```{r}
+
+aus_state_aqua <- read_csv(here("data/raw_data/aus_aquaculture_production.csv")) %>%
+  pivot_longer(names_to = "year", values_to = "quantity", -c(state, species)) %>% 
+  mutate(quantity = gsub(",", "", quantity)) %>% 
+  mutate(year = as.integer(year),
+         quantity = as.double(quantity))
+
+
+saveRDS(aus_state_aqua, here("data/tidy_data/state_aquaculture_production_tidy.rds"))
+
 
 ```
 

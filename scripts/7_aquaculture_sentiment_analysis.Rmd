@@ -6,9 +6,16 @@ output: html_document
 libraries
 ```{r}
 
-libs <- c("tidyverse", "here", "stringr", "rvest")
+library(tidyverse)
+library(here)
+library(stringr)
+library(rvest)
+library(sf)
+library(rmapshaper)
+library(scatterpie)
+library(ggnewscale)
 
-lapply(X=libs, FUN = library, character.only =TRUE)
+source(here("src/fxs.R"))
 
 ```
 
@@ -382,6 +389,103 @@ nrow(initial_agreemnet %>% filter(agreement_1_2==TRUE))/nrow(initial_agreemnet) 
 nrow(initial_agreemnet %>% filter((sentiment_1 == "Positive" & sentiment_2=="Negative") | (sentiment_1 == "Negative" & sentiment_2=="Positive")))/ nrow(initial_agreemnet)*100 # 0.26% of headline where opposite polarity (and it was the same headline)
 
 
+
+```
+
+Import agreed sentiment, fill in agreement for pre agreed, and summarise by state
+```{r}
+
+agreed_sentiment <- readRDS(here("data/tidy_data/combined_sentiment_agreed.rds")) %>% 
+  mutate(agreement = case_when(is.na(agreement) ~ sentiment_1,
+                                      sentiment_1 == sentiment_2 ~ sentiment_1,
+                                      TRUE ~ agreement)) %>% 
+  drop_na(agreement)
+
+
+headline_relevance <- 553/782 #i.e. the proportion of non NA
+
+(summarised_sentiment <- agreed_sentiment %>% 
+  group_by(state, agreement) %>% 
+  summarise(value = n()) %>% 
+  ungroup() %>% 
+  group_by(state) %>% 
+  nest() %>% 
+  mutate(total = purrr::map(data, ~(sum(.$value)))) %>% 
+  unnest(c(data, total)) %>% 
+  ungroup()
+)
+
+
+```
+
+
+Map aquaculture production to states
+
+```{r}
+
+aus_state_aqua <- readRDS(here("data/tidy_data/state_aquaculture_production_tidy.rds")) %>% 
+  mutate(state = case_when(state == "NSW" ~ "New South Wales", 
+                           state == "VIC" ~ "Victoria", 
+                           state == "QLD" ~ "Queensland", 
+                           state == "SA" ~ "South Australia", 
+                           state == "WA" ~ "Western Australia", 
+                           state == "TAS" ~ "Tasmania", 
+                           state == "NT" ~ "Northern Territory",
+                           state == "ACT" ~ "Australian Capital Territory"))
+
+
+state_totals <- aus_state_aqua %>% filter(species!= "Total" & year %in% c(2018)) %>% 
+  group_by(state) %>% 
+  summarise(quantity = sum(quantity, na.rm = TRUE))
+
+state_shp <- st_read(here("data/spatial/STE_2021_AUST_SHP/STE_2021_AUST_GDA94.shp")) %>%
+  st_set_precision(100) %>% 
+  filter(!STE_NAME21 %in% c("Other Territories", "Outside Australia") ) %>% 
+  left_join(state_totals, by = c("STE_NAME21" = "state")) %>% 
+  mutate(lon = map_dbl(geometry, ~st_point_on_surface(.x)[[1]]),
+         lat = map_dbl(geometry, ~st_point_on_surface(.x)[[2]])) %>% 
+  mutate(offset = case_when(STE_NAME21 == "Tasmania" ~ 5,
+                            STE_NAME21 == "Australian Capital Territory" ~ 4,
+                            TRUE ~ 0),
+         lon_adj = lon + offset)
+
+
+st_crs(state_shp)
+
+pie_centroids <- 
+  tibble(state = state_shp$STE_NAME21, lon =  state_shp$lon_adj, lat = state_shp$lat) %>% 
+  left_join(summarised_sentiment, by = "state") %>% 
+  mutate(value = as.numeric(value),
+         rel_total = total/min(total)) 
+
+
+pie_segments <- 
+  tibble(lon = state_shp %>% slice(c(6,8)) %>% pull(lon), lat = state_shp %>% slice(c(6,8)) %>% pull(lat), lon_adj = state_shp %>% slice(c(6,8)) %>% pull(lon_adj)) #only for ACT and TAS
+
+
+crd <-  
+crd$clip <- "off"
+
+  ggplot()+
+    geom_sf(data = state_shp, aes(fill = quantity+1), colour="grey30")
+    scale_fill_gradientn(colours = RColorBrewer::brewer.pal(n = 5, name = "BuPu"),
+                         trans = "log10",
+                         na.value = "white")+
+    labs(fill="Production (MT)")+
+    geom_segment(data = pie_segments,  aes(x = lon, xend = lon_adj, y = lat, yend = lat), lineend = "round")+
+    new_scale_fill()+
+  geom_scatterpie(data = pie_centroids, aes(x=lon, y=lat, group = state, r=rel_total), long_format = TRUE, cols = "agreement", size=0.1)+
+    geom_scatterpie_legend(radius = pie_centroids$rel_total, x = 161, y = -38.5, n = 10, labeller = function(x) min(pie_centroids$total)*x)+
+    scale_fill_manual(values = c("firebrick", "grey80", "dodgerblue"))+
+    labs(fill="Headline sentiment")+
+        theme_void()+
+    theme(legend.title = element_text(size = 10),
+      legend.text = element_text(size=10),
+      legend.position = c(0.95, 0.6))+
+    annotate("text", x = 158.5, y = -34.5, label = "No. headlines", hjust =0, size=3.5)
+    
+  
+ggsave(filename = here("figures/Figure 4 - sentiment and production.jpg"), device = "jpg", dpi = 600, width = 18, height = 12, units = "cm")
 
 ```
 
