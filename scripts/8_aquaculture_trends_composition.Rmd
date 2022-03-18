@@ -1,0 +1,175 @@
+---
+title: "Aquaculture trends and composition"
+author: "Rich Cottrell"
+date: "18/03/2022"
+output: html_document
+---
+
+Libraries
+```{r}
+
+library(tidyverse)
+library(here)
+library(RColorBrewer)
+library(ggforce)
+
+```
+
+Import aquaculture data
+```{r}
+
+aquaculture_prod <- readRDS(here("data/tidy_data/aquaculture_production_tidy.rds"))
+
+(aus_aquaculture <- aquaculture_prod %>% 
+  filter(country == "Australia") %>% 
+  group_by(species, environment, year) %>% 
+  summarise(value = sum(value)) %>% 
+  ungroup() %>% 
+mutate(species_groups = case_when(grepl("salmon", species) ~ "Salmons",
+                                  grepl("shrimp", species) ~ "Shrimps and prawns",
+                                  grepl("prawn", species) ~ "Shrimps and prawns",
+                                  grepl("trout", species) ~ "Trouts",
+                                  grepl("oyster", species) ~ "Oysters",
+                                  grepl("perch", species) & species!="Barramundi(=Giant seaperch)" ~ "FW Perch spp.",
+                                  species=="Barramundi(=Giant seaperch)" ~ "Barramundi",
+                                  grepl("crayfish", species) ~ "Crayfish",
+                                  grepl("crab", species) ~ "Crustaceans, other",
+                                  grepl("crustaceans", species) ~ "Crustaceans, other",
+                                  species %in% c("Freshwater fishes nei", "Finfishes nei", "Marine fishes nei" ) ~ "Finfishes, other",
+                                  grepl("eel", species) ~ "Finfishes, other",
+                                  grepl("mussel", species) ~ "Mussels",
+                                  grepl("Abalones", species) ~ "Abalones",
+                                  grepl("scallop", species)~ "Scallops",
+                                  TRUE ~ species)) %>% 
+  arrange(-value) %>% 
+    group_by(species_groups, environment, year) %>% 
+    summarise(value = sum(value))
+)
+
+
+```
+Plot production
+```{r}
+
+marine_aqua <- aus_aquaculture %>% filter(environment =="Marine")
+marine_spp_orders <- c(marine_aqua %>% group_by(species_groups, year) %>%  summarise(value = sum(value)) %>% filter(!grepl("other", species_groups)) %>% arrange(-value) %>% pull(species_groups) %>% unique(), marine_aqua %>% group_by(species_groups, year) %>%  summarise(value = sum(value)) %>% filter(grepl("other", species_groups)) %>% arrange(-value) %>% pull(species_groups) %>% unique())
+
+
+(marine_production <- 
+  ggplot(data = marine_aqua %>% 
+         filter(year %in% c(1959, 1969, 1979, 1989, 1999, 2009, 2019)) %>% 
+         mutate(year = factor(year),
+                species_groups = factor(species_groups, levels = marine_spp_orders)))+
+  aes(x=year, y = value, fill=species_groups)+
+  geom_bar(stat = "identity")+
+  facet_grid(rows = vars(environment))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Blues"))(10)))+
+ggpubr::theme_pubr()+
+  theme(legend.position = c(0.2, 0.7),
+        legend.title = element_blank(),
+        legend.key.size = unit(0.3, "cm"),
+        text = element_text(size=8),
+        legend.text = element_text(size=8))+
+  labs(x="Year", y="Production (tonnes)") +
+    scale_y_continuous(limits = c(0, 82000)) 
+  )
+  
+  
+
+fw_aqua <- aus_aquaculture %>% filter(environment == "Freshwater")
+fw_spp_orders <- c(fw_aqua %>% group_by(species_groups, year) %>%  summarise(value = sum(value)) %>%  filter(!grepl("other", species_groups)) %>% arrange(-value) %>% pull(species_groups) %>% unique(), fw_aqua %>% group_by(species_groups, year) %>%  summarise(value = sum(value)) %>% filter(grepl("other", species_groups)) %>% arrange(-value) %>% pull(species_groups) %>% unique())
+
+
+(fw_production_inset <- 
+  ggplot(data = fw_aqua %>% 
+         filter(year %in% c(1959, 1969, 1979, 1989, 1999, 2009, 2019)) %>% 
+         mutate(year = factor(year),
+                species_groups = factor(species_groups, levels = fw_spp_orders)))+
+  aes(x=year, y = value, fill=species_groups)+
+  geom_bar(stat = "identity")+
+    ggpubr::theme_pubr()+
+    theme(axis.title = element_blank(),
+          axis.text.x = element_text(angle=45, hjust = 1),
+        text = element_text(size=8))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Greens"))(9)))+
+    guides(fill="none")
+)
+
+(fw_production <- 
+  ggplot(data = fw_aqua %>% 
+         filter(year %in% c(1959, 1969, 1979, 1989, 1999, 2009, 2019)) %>% 
+         mutate(year = factor(year),
+                species_groups = factor(species_groups, levels = fw_spp_orders)))+
+  aes(x=year, y = value, fill=species_groups)+
+  geom_bar(stat = "identity")+
+  facet_grid(rows = vars(environment))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Greens"))(9)))+
+ggpubr::theme_pubr()+
+  theme(legend.position = c(0.17, 0.81),
+        legend.title = element_blank(),
+        legend.key.size = unit(0.3, "cm"),
+        text = element_text(size=8),
+        legend.text = element_text(size=8))+
+  labs(x="Year", y="Production (tonnes)")+
+    scale_y_continuous(limits = c(0, 82000))+
+    annotation_custom(ggplotGrob(fw_production_inset), xmin = 3.5, xmax=7, ymin = 20000, ymax = 82000)
+)
+
+
+bw_aqua <- aus_aquaculture %>% filter(environment == "Brackishwater")
+bw_spp_orders <- c(bw_aqua %>% group_by(species_groups, year) %>%  summarise(value = sum(value)) %>%  filter(!grepl("other", species_groups)) %>% arrange(-value) %>% pull(species_groups) %>% unique(), bw_aqua %>% group_by(species_groups, year) %>%  summarise(value = sum(value)) %>% filter(grepl("other", species_groups)) %>% arrange(-value) %>% pull(species_groups) %>% unique())
+
+(bw_production_inset <- 
+  ggplot(data = bw_aqua %>% 
+         filter(year %in% c(1959, 1969, 1979, 1989, 1999, 2009, 2019)) %>% 
+         mutate(year = factor(year),
+                species_groups = factor(species_groups, levels = bw_spp_orders)))+
+  aes(x=year, y = value, fill=species_groups)+
+  geom_bar(stat = "identity")+
+    ggpubr::theme_pubr()+
+    theme(axis.title = element_blank(),
+          axis.text.x = element_text(angle=45, hjust = 1),
+        text = element_text(size=8))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Purples"))(6)))+
+    guides(fill="none")
+)
+
+(bw_production <- 
+  ggplot(data = bw_aqua %>% 
+         filter(year %in% c(1959, 1969, 1979, 1989, 1999, 2009, 2019)) %>% 
+         mutate(year = factor(year),
+                species_groups = factor(species_groups, levels = bw_spp_orders)))+
+  aes(x=year, y = value, fill=species_groups)+
+  geom_bar(stat = "identity")+
+  facet_grid(rows = vars(environment))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Purples"))(6)))+
+ggpubr::theme_pubr()+
+  theme(legend.position = c(0.18, 0.8),
+        legend.title = element_blank(),
+        legend.key.size = unit(0.3, "cm"),
+        text = element_text(size=8),
+        legend.text = element_text(size=8))+
+  labs(x="Year", y="Production (tonnes)")+
+    scale_y_continuous()+
+    scale_y_continuous(limits = c(0, 82000))+
+    annotation_custom(ggplotGrob(bw_production_inset), xmin = 3.5, xmax=7, ymin = 20000, ymax = 82000)
+)
+
+
+
+ggpubr::ggarrange(marine_production,
+          fw_production,
+          bw_production,
+          
+          nrow = 3, 
+          ncol = 1, 
+          labels = letters[1:3],
+          font.label = list(size=9))
+
+
+ggsave(here("figures/Figure 5 - Aquaculture trends.jpg"), device="jpg", dpi = 600, height = 18, width = 12, units = "cm")
+
+
+```
+
+
