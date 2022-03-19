@@ -16,16 +16,16 @@ Read in data
 
 import_totals <- readRDS(file = here("data", "tidy_data", "Aus_import_country_totals_live_equiv.rds")) %>% mutate(iso3c = countrycode(partner_country_name, origin = "country.name", destination = "iso3c", warn=TRUE))
 
-ecosystem_viability_2020 <- readRDS(file=here("data", "tidy_data", "ecosystem_viability.rds")) %>% select(-country) %>% 
+ecosystem_viability_2020 <- readRDS(file=here("data", "tidy_data", "ecosystem_viability.rds")) %>% dplyr::select(-country) %>% 
   rename(ecosystem_viability = ECO.new)
 
 slavery_index <- readRDS(file = here("data", "tidy_data", "gsi.rds")) %>% 
   mutate(iso3c = countrycode(sourcevar = country, origin = "country.name", destination = "iso3c", warn = TRUE)) %>% 
-  select(-country, -gsi_prev)
+  dplyr::select(-country, -gsi_prev)
 
 gov_effect_2020 <- readRDS(file = here("data", "tidy_data", "government_effectiveness.rds")) %>% 
   filter(year==2020) %>% 
-  select(-country_name, -year)
+  dplyr::select(-country_name, -year)
 
 
 gov_effect_2020$gov_effect[gov_effect_2020$iso3c=="AUS"]
@@ -47,7 +47,7 @@ Create map thumbnails
 ```{r}
 
 (aus_map <- ggplot()+
-  geom_sf(data= sf::st_crop(x=aus_shp, y=c(xmin = 112.9082, xmax = 158.9589, ymin=-45, ymax=-10.05176)), fill=rev(brewer.pal(n=9, name = "PuRd"))[8], colour=NA)+
+  geom_sf(data= sf::st_crop(x=aus_shp, y=c(xmin = 112.9082, xmax = 158.9589, ymin=-45, ymax=-10.05176)), fill=rev(brewer.pal(n=9, name = "BuPu"))[8], colour=NA)+
   theme_void()+
    annotate("text", x=135, y=-24, label= round(gov_effect_2020$gov_effect[gov_effect_2020$iso3c=="AUS"], digits = 2), size=2)
 )
@@ -108,7 +108,7 @@ ggplot()+
         panel.grid = element_blank(),
         legend.background = element_rect(fill="transparent"),
         legend.key = element_rect(fill="transparent"))+
-  scale_color_gradientn(colours = rev(brewer.pal(n=9, name = "PuRd")))+
+  scale_color_gradientn(colours = rev(brewer.pal(n=9, name = "YlGnBu")), na.value = "grey80")+
   #scale_colour_gradient2(low = "firebrick", mid = "pink", high = "blue", midpoint = 0, limits=c(-2.5,2.5))+
   scale_size_continuous(breaks = c(0.001, 0.01, 0.1, 0.2, 0.3))+
   coord_cartesian(xlim = c(10,80), clip="off")+

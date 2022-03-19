@@ -69,8 +69,9 @@ ggpubr::theme_pubr()+
         legend.title = element_blank(),
         legend.key.size = unit(0.3, "cm"),
         text = element_text(size=8),
+        axis.title.x = element_blank(),
         legend.text = element_text(size=8))+
-  labs(x="Year", y="Production (tonnes)") +
+  labs( y="Production (tonnes)") +
     scale_y_continuous(limits = c(0, 82000)) 
   )
   
@@ -91,7 +92,7 @@ fw_spp_orders <- c(fw_aqua %>% group_by(species_groups, year) %>%  summarise(val
     theme(axis.title = element_blank(),
           axis.text.x = element_text(angle=45, hjust = 1),
         text = element_text(size=8))+
-  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Greens"))(9)))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "YlGnBu"))(9)))+
     guides(fill="none")
 )
 
@@ -103,14 +104,15 @@ fw_spp_orders <- c(fw_aqua %>% group_by(species_groups, year) %>%  summarise(val
   aes(x=year, y = value, fill=species_groups)+
   geom_bar(stat = "identity")+
   facet_grid(rows = vars(environment))+
-  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Greens"))(9)))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "YlGnBu"))(9)))+
 ggpubr::theme_pubr()+
   theme(legend.position = c(0.17, 0.81),
         legend.title = element_blank(),
         legend.key.size = unit(0.3, "cm"),
         text = element_text(size=8),
+        axis.title.x = element_blank(),
         legend.text = element_text(size=8))+
-  labs(x="Year", y="Production (tonnes)")+
+  labs( y="Production (tonnes)")+
     scale_y_continuous(limits = c(0, 82000))+
     annotation_custom(ggplotGrob(fw_production_inset), xmin = 3.5, xmax=7, ymin = 20000, ymax = 82000)
 )
@@ -130,7 +132,7 @@ bw_spp_orders <- c(bw_aqua %>% group_by(species_groups, year) %>%  summarise(val
     theme(axis.title = element_blank(),
           axis.text.x = element_text(angle=45, hjust = 1),
         text = element_text(size=8))+
-  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Purples"))(6)))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "BuPu"))(6)))+
     guides(fill="none")
 )
 
@@ -142,7 +144,7 @@ bw_spp_orders <- c(bw_aqua %>% group_by(species_groups, year) %>%  summarise(val
   aes(x=year, y = value, fill=species_groups)+
   geom_bar(stat = "identity")+
   facet_grid(rows = vars(environment))+
-  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "Purples"))(6)))+
+  scale_fill_manual(values = rev(colorRampPalette(brewer.pal(9, name = "BuPu"))(6)))+
 ggpubr::theme_pubr()+
   theme(legend.position = c(0.18, 0.8),
         legend.title = element_blank(),
