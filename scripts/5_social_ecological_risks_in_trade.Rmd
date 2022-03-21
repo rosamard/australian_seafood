@@ -47,7 +47,7 @@ Create map thumbnails
 ```{r}
 
 (aus_map <- ggplot()+
-  geom_sf(data= sf::st_crop(x=aus_shp, y=c(xmin = 112.9082, xmax = 158.9589, ymin=-45, ymax=-10.05176)), fill=rev(brewer.pal(n=9, name = "BuPu"))[8], colour=NA)+
+  geom_sf(data= sf::st_crop(x=aus_shp, y=c(xmin = 112.9082, xmax = 158.9589, ymin=-45, ymax=-10.05176)), fill=rev(brewer.pal(n=9, name = "YlGnBu"))[8], colour=NA)+
   theme_void()+
    annotate("text", x=135, y=-24, label= round(gov_effect_2020$gov_effect[gov_effect_2020$iso3c=="AUS"], digits = 2), size=2)
 )
