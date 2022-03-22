@@ -47,7 +47,9 @@ Create map thumbnails
 ```{r}
 
 (aus_map <- ggplot()+
-  geom_sf(data= sf::st_crop(x=aus_shp, y=c(xmin = 112.9082, xmax = 158.9589, ymin=-45, ymax=-10.05176)), fill=rev(brewer.pal(n=9, name = "YlGnBu"))[8], colour=NA)+
+  geom_sf(data= sf::st_crop(x=aus_shp, y=c(xmin = 112.9082, xmax = 158.9589, ymin=-45, ymax=-10.05176)), 
+          fill=rev(brewer.pal(n=9, name = "BuPu"))[8], 
+          colour="grey80", size=0.01)+
   theme_void()+
    annotate("text", x=135, y=-24, label= round(gov_effect_2020$gov_effect[gov_effect_2020$iso3c=="AUS"], digits = 2), size=2)
 )
@@ -108,12 +110,12 @@ ggplot()+
         panel.grid = element_blank(),
         legend.background = element_rect(fill="transparent"),
         legend.key = element_rect(fill="transparent"))+
-  scale_color_gradientn(colours = rev(brewer.pal(n=9, name = "YlGnBu")), na.value = "grey80")+
+  scale_color_gradientn(colours = rev(brewer.pal(n=9, name = "BuPu")), na.value = "grey80")+
   #scale_colour_gradient2(low = "firebrick", mid = "pink", high = "blue", midpoint = 0, limits=c(-2.5,2.5))+
   scale_size_continuous(breaks = c(0.001, 0.01, 0.1, 0.2, 0.3))+
   coord_cartesian(xlim = c(10,80), clip="off")+
   #annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 33, ymax=42)+ by the legend
-  annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 33, ymax=42)+
+  annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 59, ymax=68)+
 
   labs(x="Vulnerability to slavery", y="Ecosystem viability", colour="Government effectiveness", size="Proportion of seafood imports")
   #geom_smooth(mapping = aes(x=gsi_vuln, y=ecosystem_viability), formula = y~s(x), method = "gam", level=0)
