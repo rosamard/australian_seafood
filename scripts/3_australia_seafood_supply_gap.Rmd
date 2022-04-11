@@ -316,4 +316,25 @@ ggsave(here("figures", "Figure 1 - Australia's seafood supply gap_2.jpg"), devic
 
 ```
 
+Wild capture vs aquaculture production for Aus
+
+```{r}
+
+capture <- readRDS(here("data/tidy_data/capture_production_tidy.rds"))
+
+capture <- capture |>  filter(country=="Australia") |> group_by(country, year) |> summarise(value=sum(value))
+
+aqua <- readRDS(here("data/tidy_data/aquaculture_production_tidy.rds"))
+
+
+aqua <- aqua |>  filter(country=="Australia") |> group_by(country, year) |> summarise(value=sum(value))
+
+
+
+
+
+
+
+```
+
 

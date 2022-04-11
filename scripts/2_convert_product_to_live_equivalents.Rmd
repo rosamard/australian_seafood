@@ -61,5 +61,7 @@ saveRDS(object = seafood_live_equivalents, file = here("data", "tidy_data", "sea
 seafood_live_equivalents %>% filter(partner_country_name=="Thailand")
 
 seafood_trade_products %>% filter(partner_country_name=="Thailand" & trade_flow_name == "Imports")
+
+
 ```
 
