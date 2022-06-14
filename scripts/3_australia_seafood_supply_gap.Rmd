@@ -10,6 +10,7 @@ libs <- c("tidyverse", "janitor", "here", "RColorBrewer", "ggpubr", "rnaturalear
 
 lapply(X= libs, FUN=library, character.only=TRUE)
 
+select <- dplyr::select
 
 ```
 
@@ -51,7 +52,7 @@ items_of_interest <- c( "Cereals - Excluding Beer", "Fruits - Excluding Wine",  
 
 
 #total food supply first
-fbs_aus_total <- fbs_aus %>% 
+fbs_aus_total <- fbs_aus |> 
   filter(element == "Food") %>%
   filter(item %in% c(items_of_interest)) %>% 
   mutate(item = case_when(item %in% c("Fruits - Excluding Wine", "Vegetables") ~ "Fruits, Vegetables",
@@ -64,7 +65,7 @@ fbs_aus_total <- fbs_aus %>%
   summarise(value=sum(value)) %>% 
   ungroup() %>% 
   group_by(item) %>% 
-  nest() %>% 
+  nest() %>%
   mutate(rel_value = purrr::map(data, ~(.$value/.$value[1]))) %>% 
   unnest(cols = c(data, rel_value)) %>% 
   ungroup()
@@ -208,7 +209,7 @@ adj_fbs_aus <-
 
 
 
-Plot import proportins through time
+Plot import proportions through time
 ```{r}
 (import_proportions <- 
   ggplot(data = import_proportions_df)+
@@ -311,6 +312,27 @@ ggarrange(
 )
 
 ggsave(here("figures", "Figure 1 - Australia's seafood supply gap_2.jpg"), device = "jpg", dpi=600, width = 18, height = 17, units = "cm")
+
+
+```
+
+Wild capture vs aquaculture production for Aus
+
+```{r}
+
+capture <- readRDS(here("data/tidy_data/capture_production_tidy.rds"))
+
+capture <- capture |>  filter(country=="Australia") |> group_by(country, year) |> summarise(value=sum(value))
+
+aqua <- readRDS(here("data/tidy_data/aquaculture_production_tidy.rds"))
+
+
+aqua <- aqua |>  filter(country=="Australia") |> group_by(country, year) |> summarise(value=sum(value))
+
+
+
+
+
 
 
 ```
