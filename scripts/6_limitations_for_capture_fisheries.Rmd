@@ -9,7 +9,7 @@ libs <- c("tidyverse", "janitor", "here", "RColorBrewer", "ggpubr", "rnaturalear
 
 lapply(libs, library, character.only=TRUE)
 
-```
+``` 
 
 Projections
 ```{r}
