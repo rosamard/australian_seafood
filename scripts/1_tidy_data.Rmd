@@ -292,23 +292,43 @@ saveRDS(object = gov_eff, file = here("data", "tidy_data", "government_effective
 Global slavery index
 ```{r}
 
-read_csv(file = here("data", "raw_data", "gsi.csv")) %>% 
+read_csv(file = here("data", "raw_data", "gsi_vuln.csv")) |> 
+   mutate(iso3c = countrycode(sourcevar = country, origin = "country.name", destination = "iso3c", warn=TRUE)) |> 
    saveRDS(file = here("data", "tidy_data", "gsi.rds"))
 
 ```
+
 Environmental Performance Index
 ```{r}
 
 epi_2018 <- read_csv(here("data", "raw_data", "epi_2018.csv"))
 epi_2020 <- read_csv(here("data", "raw_data", "epi_2020.csv"))
 
-ecosystem_viability <- epi_2020 %>% select(iso, country, ECO.new) %>% 
+ecosystem_vitality <- epi_2020 %>% select(iso, country, ECO.new) %>% 
    rename(iso3c = iso)
 
-saveRDS(object = ecosystem_viability, file = here("data", "tidy_data", "ecosystem_vaibility.rds"))
+saveRDS(object = ecosystem_vitality, file = here("data", "tidy_data", "ecosystem_vitality.rds"))
 
+epi <- epi_2020 %>% select(iso, country, EPI.new) %>% 
+   rename(iso3c = iso)
+
+saveRDS(object = epi, file = here("data", "tidy_data", "environmental_performance_index.rds"))
 
 ```
+
+
+EIU Illicit trade index 
+```{r}
+
+eiu_illicit_trade <- read_csv(file.path(rdsi_raw_data_dir, "eiu-illicit-trade-index/eiu-illicit-trade-index.csv")) |> 
+   rename(illicit_score = epi_score) |> 
+   mutate(iso3c = countrycode(sourcevar = country_name, origin = "country.name", destination = "iso3c", warn = TRUE))
+
+#save in project
+saveRDS(object = eiu_illicit_trade, file = here("data/tidy_data/eiu-illicit-trade.rds"))
+
+```
+
 
 
 Spatialised Australian landings raster
@@ -390,5 +410,20 @@ aus_state_aqua <- read_csv(here("data/raw_data/aus_aquaculture_production.csv"))
 saveRDS(aus_state_aqua, here("data/tidy_data/state_aquaculture_production_tidy.rds"))
 
 
+```
+
+Import Aus stock assessment data
+
+```{r}
+
+stock_summary <- read_csv(file.path(rdsi_raw_data_dir, "fishery-stock-status/aus_2012_2020.csv")) |> 
+   group_by(year) |> 
+   nest() |> 
+   mutate(sum = map(data, ~(sum(.$freq)))) |> 
+   unnest(c(data, sum)) |> 
+   ungroup() |> 
+   mutate(prop = freq/sum)
+
+write_csv(x = stock_summary, file = here("data/tidy_data/fishery_stock_status.csv"))
 ```
 

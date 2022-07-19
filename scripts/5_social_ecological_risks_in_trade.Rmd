@@ -16,12 +16,16 @@ Read in data
 
 import_totals <- readRDS(file = here("data", "tidy_data", "Aus_import_country_totals_live_equiv.rds")) %>% mutate(iso3c = countrycode(partner_country_name, origin = "country.name", destination = "iso3c", warn=TRUE))
 
-ecosystem_viability_2020 <- readRDS(file=here("data", "tidy_data", "ecosystem_viability.rds")) %>% dplyr::select(-country) %>% 
-  rename(ecosystem_viability = ECO.new)
+ecosystem_vitality_2020 <- readRDS(file=here("data", "tidy_data", "ecosystem_vitality.rds")) %>% dplyr::select(-country) %>% 
+  rename(ecosystem_vitality = ECO.new)
 
-slavery_index <- readRDS(file = here("data", "tidy_data", "gsi.rds")) %>% 
-  mutate(iso3c = countrycode(sourcevar = country, origin = "country.name", destination = "iso3c", warn = TRUE)) %>% 
-  dplyr::select(-country, -gsi_prev)
+epi_2020 <- readRDS(file=here("data", "tidy_data", "environmental_performance_index.rds")) %>% dplyr::select(-country) %>% 
+  rename(epi = EPI.new)
+
+slavery_index <- readRDS(file = here("data", "tidy_data", "gsi.rds")) |> select(-country)
+
+eiu_illicit_trade <- readRDS(here("data/tidy_data/eiu-illicit-trade.rds")) |> select(-rank, -country_name)
+  
 
 gov_effect_2020 <- readRDS(file = here("data", "tidy_data", "government_effectiveness.rds")) %>% 
   filter(year==2020) %>% 
@@ -51,19 +55,21 @@ Create map thumbnails
           fill=rev(brewer.pal(n=9, name = "BuPu"))[8], 
           colour="grey80", size=0.01)+
   theme_void()+
-   annotate("text", x=135, y=-24, label= round(gov_effect_2020$gov_effect[gov_effect_2020$iso3c=="AUS"], digits = 2), size=2)
+   annotate("text", x=135, y=-24, label= round(eiu_illicit_trade$epi_score[eiu_illicit_trade$country_name=="Australia"], digits = 2), size=2)
 )
 ```
 
 
 Join data for all dimensions
 ```{r}
+china_illicit_trade_value <- eiu_illicit_trade |> filter(country_name == "China") |> pull(illicit_score)
 
-
-all_metrics <- import_totals %>% 
-  left_join(ecosystem_viability_2020, by="iso3c") %>% 
-  left_join(slavery_index, by="iso3c") %>% 
-  left_join(gov_effect_2020, by="iso3c") %>% 
+all_metrics <- import_totals |> 
+  left_join(epi_2020, by="iso3c") |> 
+  left_join(slavery_index, by="iso3c") |>  
+  left_join(eiu_illicit_trade, by="iso3c") |> 
+  mutate(illicit_score = case_when(iso3c == "TWN" ~ china_illicit_trade_value, 
+         TRUE ~ illicit_score)) |> 
   mutate(prop_le = value_le_median/sum(value_le_median) )
 
 saveRDS(object = all_metrics, file = here("data", "tidy_data", "social_ecological_trade_metrics.rds"))
@@ -83,13 +89,13 @@ all_metrics <- readRDS(file = here("data", "tidy_data", "social_ecological_trade
 
 
 ggplot()+
-  geom_hline(yintercept = ecosystem_viability_2020 %>% filter(iso3c =="AUS") %>% .$ecosystem_viability, linetype=2, colour="grey70")+
-  geom_vline(xintercept = slavery_index %>% filter(iso3c =="AUS") %>% .$gsi_vuln, linetype=2, colour="grey70")+
+  geom_hline(yintercept = epi_2020 %>% filter(iso3c =="AUS") %>% pull(epi), linetype=2, colour="grey70")+
+  geom_vline(xintercept = slavery_index %>% filter(iso3c =="AUS") |> pull(gsi_vuln), linetype=2, colour="grey70")+
   geom_point(data =  all_metrics, 
-              aes(x=gsi_vuln, y=ecosystem_viability, colour=gov_effect, size=prop_le))+
+              aes(x=gsi_vuln, y=epi, colour=illicit_score, size=prop_le))+
   geom_text_repel(data = all_metrics %>% slice(1:20), 
-                  mapping= aes(x=gsi_vuln, y=ecosystem_viability, label=partner_country_name), 
-                  box.padding = unit(0.5, "lines"),
+                  mapping= aes(x=gsi_vuln, y=epi, label=partner_country_name), 
+                  box.padding = unit(0.6, "lines"),
                   # nudge_x = 1.5,
                   # nudge_y = 1,
                   position = "jitter",
@@ -101,8 +107,8 @@ ggplot()+
                   seed = 42,
                   size=2
                   )+
-  scale_y_continuous(limits = c(10,80))+
-  scale_x_continuous(limits = c(10,80))+
+  scale_y_continuous(limits = c(0,80))+
+  scale_x_continuous(limits = c(0,80))+
   theme_bw()+
   theme(text = element_text(size = 7),
         legend.text = element_text(size=7),
@@ -113,19 +119,14 @@ ggplot()+
   scale_color_gradientn(colours = rev(brewer.pal(n=9, name = "BuPu")), na.value = "grey80")+
   #scale_colour_gradient2(low = "firebrick", mid = "pink", high = "blue", midpoint = 0, limits=c(-2.5,2.5))+
   scale_size_continuous(breaks = c(0.001, 0.01, 0.1, 0.2, 0.3))+
-  coord_cartesian(xlim = c(10,80), clip="off")+
+  coord_cartesian(xlim = c(0,80), clip="off")+
   #annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 33, ymax=42)+ by the legend
-  annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 59, ymax=68)+
+  annotation_custom(ggplotGrob(aus_map), xmin = 96, xmax = 104, ymin = 56, ymax=65)+
 
-  labs(x="Vulnerability to slavery", y="Ecosystem viability", colour="Government effectiveness", size="Proportion of seafood imports")
+  labs(x="Vulnerability to slavery", y="Environmental Performance Index", colour="Illicit trade\nenvironment", size="Proportion of seafood imports")#+
   #geom_smooth(mapping = aes(x=gsi_vuln, y=ecosystem_viability), formula = y~s(x), method = "gam", level=0)
   
 ggsave(filename = here("figures", "Figure 3- social-ecological tradeoffs.jpg"), device = "jpg", dpi=600, width = 16.5, height = 12, units = "cm")
-
-
-
-
-
 
 
 ```
