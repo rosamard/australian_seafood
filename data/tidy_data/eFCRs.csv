@@ -1,0 +1,210 @@
+Taxa,Year,eFCR
+Carps,1995,2
+Carps,1996,2
+Carps,1997,2
+Carps,1998,2
+Carps,1999,2
+Carps,2000,2
+Carps,2001,1.9
+Carps,2002,1.9
+Carps,2003,1.9
+Carps,2004,1.9
+Carps,2005,1.8
+Carps,2006,1.8
+Carps,2007,1.8
+Carps,2008,1.8
+Carps,2009,1.8
+Carps,2010,1.8
+Carps,2011,1.7
+Carps,2012,1.7
+Carps,2015,1.7
+Shrimps,1995,2
+Shrimps,1996,2
+Shrimps,1997,2
+Shrimps,1998,2
+Shrimps,1999,2
+Shrimps,2000,2
+Shrimps,2001,2
+Shrimps,2002,1.9
+Shrimps,2003,1.9
+Shrimps,2004,1.9
+Shrimps,2005,1.9
+Shrimps,2006,1.8
+Shrimps,2007,1.8
+Shrimps,2008,1.8
+Shrimps,2009,1.8
+Shrimps,2010,1.7
+Shrimps,2011,1.7
+Shrimps,2012,1.7
+Shrimps,2015,1.7
+Tilapias,1995,2
+Tilapias,1996,2
+Tilapias,1997,2
+Tilapias,1998,1.9
+Tilapias,1999,1.9
+Tilapias,2000,1.9
+Tilapias,2001,1.9
+Tilapias,2002,1.8
+Tilapias,2003,1.8
+Tilapias,2004,1.8
+Tilapias,2005,1.8
+Tilapias,2006,1.7
+Tilapias,2007,1.7
+Tilapias,2008,1.7
+Tilapias,2009,1.7
+Tilapias,2010,1.7
+Tilapias,2011,1.7
+Tilapias,2012,1.7
+Tilapias,2015,1.7
+Catfishes,1995,2
+Catfishes,1996,2
+Catfishes,1997,2
+Catfishes,1998,1.9
+Catfishes,1999,1.9
+Catfishes,2000,1.8
+Catfishes,2001,1.8
+Catfishes,2002,1.7
+Catfishes,2003,1.7
+Catfishes,2004,1.6
+Catfishes,2005,1.6
+Catfishes,2006,1.5
+Catfishes,2007,1.5
+Catfishes,2008,1.5
+Catfishes,2009,1.5
+Catfishes,2010,1.5
+Catfishes,2011,1.4
+Catfishes,2012,1.4
+Catfishes,2015,1.4
+FW fishes,1995,2
+FW fishes,1996,2
+FW fishes,1997,2
+FW fishes,1998,2
+FW fishes,1999,2
+FW fishes,2000,2
+FW fishes,2001,2
+FW fishes,2002,2
+FW fishes,2003,2
+FW fishes,2004,2
+FW fishes,2005,2
+FW fishes,2006,2
+FW fishes,2007,2
+FW fishes,2008,2
+FW fishes,2009,2
+FW fishes,2010,2
+FW fishes,2011,2
+FW fishes,2012,1.8
+FW fishes,2015,1.8
+Salmons,1995,1.5
+Salmons,1996,1.5
+Salmons,1997,1.4
+Salmons,1998,1.4
+Salmons,1999,1.4
+Salmons,2000,1.3
+Salmons,2001,1.3
+Salmons,2002,1.3
+Salmons,2003,1.3
+Salmons,2004,1.3
+Salmons,2005,1.3
+Salmons,2006,1.3
+Salmons,2007,1.3
+Salmons,2008,1.3
+Salmons,2009,1.3
+Salmons,2010,1.3
+Salmons,2011,1.3
+Salmons,2012,1.3
+Salmons,2015,1.3
+Trouts,1995,1.5
+Trouts,1996,1.5
+Trouts,1997,1.4
+Trouts,1998,1.4
+Trouts,1999,1.4
+Trouts,2000,1.3
+Trouts,2001,1.3
+Trouts,2002,1.3
+Trouts,2003,1.3
+Trouts,2004,1.3
+Trouts,2005,1.3
+Trouts,2006,1.3
+Trouts,2007,1.3
+Trouts,2008,1.3
+Trouts,2009,1.3
+Trouts,2010,1.3
+Trouts,2011,1.3
+Trouts,2012,1.3
+Trouts,2015,1.3
+Milkfish,1995,2
+Milkfish,1996,2
+Milkfish,1997,2
+Milkfish,1998,2
+Milkfish,1999,2
+Milkfish,2000,2
+Milkfish,2001,2
+Milkfish,2002,2
+Milkfish,2003,2
+Milkfish,2004,2
+Milkfish,2005,2
+Milkfish,2006,2
+Milkfish,2007,2
+Milkfish,2008,2
+Milkfish,2009,2
+Milkfish,2010,2
+Milkfish,2011,2
+Milkfish,2012,1.9
+Milkfish,2015,1.7
+Eels,1995,2
+Eels,1996,1.9
+Eels,1997,1.9
+Eels,1998,1.8
+Eels,1999,1.8
+Eels,2000,1.8
+Eels,2001,1.7
+Eels,2002,1.7
+Eels,2003,1.7
+Eels,2004,1.6
+Eels,2005,1.6
+Eels,2006,1.6
+Eels,2007,1.6
+Eels,2008,1.6
+Eels,2009,1.6
+Eels,2010,1.6
+Eels,2011,1.6
+Eels,2012,1.6
+Eels,2015,1.5
+Marine fishes ,1995,2
+Marine fishes ,1996,2
+Marine fishes ,1997,2
+Marine fishes ,1998,2
+Marine fishes ,1999,2
+Marine fishes ,2000,2
+Marine fishes ,2001,2
+Marine fishes ,2002,2
+Marine fishes ,2003,2
+Marine fishes ,2004,1.9
+Marine fishes ,2005,1.9
+Marine fishes ,2006,1.9
+Marine fishes ,2007,1.9
+Marine fishes ,2008,1.9
+Marine fishes ,2009,1.9
+Marine fishes ,2010,1.9
+Marine fishes ,2011,1.8
+Marine fishes ,2012,1.8
+Marine fishes ,2015,1.7
+FW crustaceans ,1995,2.5
+FW crustaceans ,1996,2.5
+FW crustaceans ,1997,2.5
+FW crustaceans ,1998,2.5
+FW crustaceans ,1999,2.4
+FW crustaceans ,2000,2.4
+FW crustaceans ,2001,2.4
+FW crustaceans ,2002,2.3
+FW crustaceans ,2003,2.3
+FW crustaceans ,2004,2.2
+FW crustaceans ,2005,2.2
+FW crustaceans ,2006,2.1
+FW crustaceans ,2007,2.1
+FW crustaceans ,2008,2
+FW crustaceans ,2009,2
+FW crustaceans ,2010,2
+FW crustaceans ,2011,2
+FW crustaceans ,2012,1.9
+FW crustaceans ,2015,1.9
