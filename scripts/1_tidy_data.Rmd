@@ -89,8 +89,8 @@ remove_flags_aqua <-
    select(-col_seq)
 
 aqua_prod <- 
-   remove_flags |> 
-   pivot_longer(cols = -c(1:6), names_to = "year", values_to = "value") |> 
+   remove_flags_aqua |> 
+   pivot_longer(cols = -c(1:7), names_to = "year", values_to = "value") |> 
    mutate(year = gsub(pattern = "x", replacement = "", year) |> as.numeric())
 
 
