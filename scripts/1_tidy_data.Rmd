@@ -152,20 +152,20 @@ saveRDS(object = fish_fbs, file = here("data", "tidy_data", "fish_fbs_tidy.rds")
 Fish trade data - volume, temporal
 ```{r}
 
-col_seq <- seq(from = 7, to = 93, by=2) #remove every other column from the 7th
+col_seq <- seq(from = 7, to = 97, by=2) #remove every other column from the 7th
 
-seafood_trade_raw <- read_csv(here("data", "raw_data", "fish_trade_volume_1976-2019.csv")) %>% 
+seafood_trade_volume <- read_csv(here("data", "raw_data", "fish_trade_volume_1976-2020.csv")) %>% 
    clean_names() %>% 
    select(-col_seq) %>% 
-   filter(!reporting_country_name %in% c("Totals - Tonnes – net product weight", "FAO. 2021. Fishery and Aquaculture Statistics. Global Fish Trade - All partners aggregated 1976-2019 (FishstatJ). In: FAO Fisheries and Aquaculture Division [online]. Rome. Updated 2021. www.fao.org/fishery/statistics/software/fishstatj/en"))
-
-
-seafood_trade_volume <- seafood_trade_raw %>% 
-   pivot_longer(names_to = "year", values_to = "value", cols=-c(1:5)) %>% 
+   filter(!reporting_country_name %in% c("Totals - Tonnes – net product weight", "FAO. 2021. Fishery and Aquaculture Statistics. Global Fish Trade - All partners aggregated 1976-2019 (FishstatJ). In: FAO Fisheries and Aquaculture Division [online]. Rome. Updated 2021. www.fao.org/fishery/statistics/software/fishstatj/en"))  |> 
+   rename(hs_code = commodity_code,
+          isscaap_name = commodity_name_1) |> 
+   pivot_longer(names_to = "year", values_to = "value", cols=-c(1:6)) %>% 
    mutate(year = gsub("x", "", year) %>% 
              as.numeric)
 
-saveRDS(object = seafood_trade_volume, file = here("data", "tidy_data", "seafood_trade_volume_product_weight_1976-2019.rds"))
+
+saveRDS(object = seafood_trade_volume, file = here("data", "tidy_data", "seafood_trade_volume_product_weight_1976_2020.rds"))
    
 
 

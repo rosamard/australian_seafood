@@ -173,11 +173,26 @@ fbs_aus <- fbs %>%
   mutate(year = year %>% as.numeric)
 
 
+#Calculate the changing proportion of reexports, and non-food uses
+
+flow_summary <- 
+  readRDS(file = here("data", "tidy_data", "seafood_trade_volume_live_equivalent_1976_2019.rds")) |> 
+  group_by(year, trade_flow_name) |> 
+  summarise(value = sum(value_LE_med_cf, na.rm = TRUE)) |> 
+  pivot_wider(names_from = trade_flow_name, values_from = value)
+
+
+
+
+
 adj_fbs_aus <- 
   fbs_aus %>% filter(element_name %in% c("Production", "Food exports", "Stock variations", "Non-food uses", "Total food supply", "Food imports")) %>% 
-  pivot_wider(names_from = element_name, values_from = value) %>% 
-  mutate(`Domestic production` = Production-`Food exports`-(`Non-food uses`*0.5)+(`Stock variations`*0.5), #adj production by half of non food use and stock variations
-         `Imports` = `Food imports`- (`Non-food uses`*0.5)+(`Stock variations`*0.5)) %>% #adj imports by half of non food uses and stock variations
+  pivot_wider(names_from = element_name, values_from = value) |> 
+  left_join(flow_summary, by = "year") |> 
+  select(-c(Exports, Imports)) |> 
+  mutate(Reexports = if_else(is.na(Reexports), true = 0, false = Reexports)) |> 
+  mutate(`Domestic production` = Production-`Food exports`-(`Non-food uses`*0)+(`Stock variations`*0.5), #adj production by half of non food use and stock variations
+         `Imports` = `Food imports`- Reexports - (`Non-food uses`*1)+(`Stock variations`*0.5)) %>% #adj imports by half of non food uses and stock variations
   pivot_longer(names_to = "element_name", values_to = "value", cols = -year) %>% 
   select(element_name, year, value) 
 
@@ -278,8 +293,6 @@ Plot production and import supply trends
 
 ggsave(here("explore", "cottrell_explore", "imports_v_production.jpg"), device="jpg", dpi=300, width=9, height=7, units="cm")
 ```
-
-
 
 
 Export combined plot of fish relative to other foods and the source of seafood supply
