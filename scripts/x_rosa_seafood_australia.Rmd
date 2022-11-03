@@ -1,0 +1,253 @@
+---
+title: "national_production"
+author: "Rosa Mar Dominguez"
+date: "25/07/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+
+#libraries
+```{r}
+
+library(tidyverse)
+library(janitor)
+library(here)
+library(countrycode)
+library(vroom)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(RColorBrewer)
+
+```
+
+
+```{r}
+(cap_aus <- readRDS(here("data", "tidy_data", "capture_production_tidy.rds")) %>% 
+   filter(country == "Australia") %>% 
+   select(- c("country", "unit", "flag", "iso3c")) %>% 
+   mutate(type = "wild-caught"))
+
+(aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds")) %>% 
+    filter(country == "Australia") %>% 
+    select(- c("country", "unit", "flag", "iso_3c")) %>% 
+    mutate(type = "farmed"))
+
+(aqu_state <- readRDS(here("data", "tidy_data", "state_aquaculture_production_tidy.rds")))
+
+aqu_aus_2 <- aqu_aus %>% 
+  filter(value >0 )
+
+ggplot(aqu_aus_2, aes(x = as.numeric(year), y = value, colour = species)) + 
+  geom_line()
+
+
+# calculate the proportion that each species contribues to total production
+
+(aqu_aus_tot <- aqu_aus %>% 
+  group_by(year) %>% 
+  summarise(t_aqu_production = sum(value)) %>% 
+    ungroup())
+
+(aqu_aus_prop <- aqu_aus %>% 
+  left_join(aqu_aus_tot, by = c("year" = "year")) %>% 
+  group_by(species, year) %>% 
+  mutate(prop = (sum(value)/t_aqu_production)*100) %>% 
+    ungroup()) 
+
+
+
+ggplot(aqu_aus_prop, aes(x = year, y = species)) + 
+  geom_bar(stat = "identity", aes(fill = prop))
+  
+
+# % of farmed vs capture to total production 
+aqu_aus1 <- aqu_aus %>% 
+  select(species, year, value, type) 
+
+palette = c("#4292C6", "#9ECAE1")
+
+
+total_production <- cap_aus %>% 
+  select(-fishing_area) %>% 
+  rbind(aqu_aus1, by = "year") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  drop_na() %>% 
+  group_by(year) %>% 
+  mutate(value = as.numeric(value)) %>% 
+  summarise(total_prod = sum(value), species, year, type, value) %>% 
+  ungroup() %>% 
+  group_by(type, year) %>% 
+  summarise(y_value = sum(value), total_prod) %>% 
+  ungroup() %>% 
+  unique()%>% 
+  mutate(type = factor(type, levels = c("farmed", "wild-caught")))
+
+prop_production <- total_production %>% 
+  filter(type == "wild-caught") %>% 
+  group_by(year) %>% 
+  summarise(prop = (y_value/total_prod)*100, y_value, type) %>% 
+  ungroup() %>% 
+  filter(year %in% (c(seq(from= 1950, to = 2017, by = 10), "2017")))
+  
+# (p_test <- ggplot(total_production %>% filter(year %in% 1950:2017),aes(x = year, y  = y_value, colour = type)) + 
+#     geom_line() +
+#     geom_smooth() + 
+#     geom_line(mapping = aes(x = year, y = total_prod), colour = "black") + 
+#     scale_x_continuous(limits = c(1950, 2019)) +
+#     theme_pubr()+
+#     theme(legend.position = c(0.25, 0.8),
+#           plot.title = element_text(hjust = 0.5, size = 15),
+#           text = element_text(size=12),
+#           legend.text = element_text(size=9),
+#           legend.key.size = unit(0.7, "cm"))+
+#     labs(title = "Australian Seafood \nProduction System", y= "Seafood production (1000s tonnes, LWE)",x = "Year", colour="Source")+
+#     scale_y_continuous(labels = scales::comma)+
+#   geom_text(data = prop_production, mapping = aes(x=year, y=y_value/1000, label=round(prop)), 
+#             size=3, nudge_y = 4) ) 
+
+(production <- ggplot(total_production %>% filter(year %in% 1950:2017)) + 
+   geom_area(aes(x = year, y = y_value/1000, fill = factor(type, levels = c("farmed", "wild-caught")))) + 
+    geom_line(data = total_production %>% filter(year %in% 1950:2017),
+              mapping = aes(x=year, y=total_prod/1000), col="black") +
+    scale_fill_manual(values =  palette) +                     #brewer.pal(n=2, "Blues"))+
+    scale_x_continuous(limits = c(1950, 2019)) +
+    theme_pubr()+
+    theme(legend.position = c(0.25, 0.8),
+          plot.title = element_text(hjust = 0.5, size = 15),
+          text = element_text(size=12),
+          legend.text = element_text(size=9),
+          legend.key.size = unit(0.7, "cm"))+
+    labs(title = "Australian Seafood \nProduction System", y= "Seafood production (1000s tonnes, LWE)",x = "Year", fill="Source")+
+    scale_y_continuous(labels = scales::comma)+
+  geom_text(data = prop_production, mapping = aes(x=year, y=y_value/1000, label=round(prop)), 
+            size=3, nudge_y = 1) 
+  )
+
+
+# (prop_line <- ggplot(total_production %>% filter(year %in% 1950:2017),aes(x = year, y  = y_value, colour = type)) + 
+#     geom_line() +
+#     #geom_smooth() + 
+#     geom_line(mapping = aes(x = year, y = total_prod), colour = "black") + 
+#     scale_x_continuous(limits = c(1950, 2019)) +
+#   #geom_text(data = prop_production, mapping = aes(x=year, y=y_value, label=round(prop)), 
+#    #         size=3, nudge_y = 10) +
+#     theme_pubr()+
+#     theme(legend.position = c(0.25, 0.8),
+#           plot.title = element_text(hjust = 0.5, size = 15),
+#           text = element_text(size=15),
+#           legend.text = element_text(size=15),
+#           legend.key.size = unit(0.7, "cm"))+
+#     labs(title = "Australian Seafood \nProduction System", y= "Seafood production (1000s tonnes, LWE)",x = "Year", colour="Source")+
+#     scale_y_continuous(labels = scales::comma)) 
+
+# 
+# display.brewer.pal(n = 8, name = "Blues")
+# brewer.pal(n = 8, name = "Blues")
+
+```
+
+
+
+
+```{r} 
+sust_cap <- read.csv(here("data", "tidy_data", "fishery_stock_status.csv"), header = T)
+
+(sust_stocks <- ggplot(sust_cap, aes(x = year, y = prop*100, fill = status)) +
+  geom_bar(stat = "identity") + 
+    scale_fill_manual(values = rev(colorRampPalette(brewer.pal(n=8, name = "GnBu"))(12)[7:12])) + 
+    guides(fill = guide_legend(title = "Sustainability status")) + 
+    theme_pubr()+
+    theme(text = element_text(size=12),
+          plot.title = element_text(size = 15, hjust = 0.5),
+        legend.text = element_text(size=12),
+        legend.title = element_blank(),
+        legend.position = "right",
+        legend.key.width = unit(0.3, "cm"), 
+        legend.key.height = unit(0.7, "cm"),
+        legend.box.spacing = unit(-0.7, "cm"))+    #,
+        #legend.margin = margin(c(0,0,0,0), "cm"))+
+  labs(y="Number of stocks (%)", x="Year")+
+  guides(colour = FALSE) + 
+    ggtitle("Sustainability of Australian \n Fisheries stocks")
+  )  #+ 
+
+
+
+glimpse(sust_cap)
+```
+
+
+```{r, Join sustainability and production figures}
+
+production + sust_stocks
+
+#ggsave(filename = here("figures", "Australian Seafood Production (Draft Version!).jpg"), device="jpg", dpi = 600, width = 30, height=17, units = "cm")
+```
+
+```{r aqua data proportion fed vs unfed}
+
+(aqu_dat <- aqu_aus %>% 
+  group_by(environment, year) %>% 
+  summarise(env_value = sum(value), species, year,value) %>% 
+  ungroup() %>% 
+  group_by(species, year) %>% 
+  summarise(y_value = sum(value), environment, env_value) %>% 
+  ungroup() %>% 
+   mutate(fed_unfed = case_when(species %in% c("Australian mussel", "Sydney cupped oyster", "Sea mussels nei", "Southern Australia scallop", "Cupped oysters nei", "Flat and cupped oysters nei", "Pacific cupped oyster", "Flat oysters nei") ~ "unfed", 
+                                TRUE ~ "fed")))
+
+
+```
+
+
+
+
+
+
+``` {r}
+(aqu_dat <- aqu_aus %>% 
+  group_by(environment, year) %>% 
+  summarise(env_value = sum(value), species, year,value) %>% 
+  ungroup() %>% 
+  group_by(species, year) %>% 
+  summarise(y_value = sum(value), environment, env_value) %>% 
+  ungroup() %>% 
+    mutate(species = replace(species, str_detect(species, "oyster"), "oysters")))
+
+(top <- aqu_dat%>% 
+  slice_max(y_value, prop = 0.05))
+
+summary(as.factor(top$species))
+
+(aqu_top <- aqu_dat %>% 
+  select(- c("environment", "env_value")) %>% 
+  mutate(species = case_when(species %in% top$species ~ species, 
+                            TRUE ~ "other")) %>% 
+    group_by(species, year) %>% 
+    summarise(value = sum(y_value)) %>% 
+    ungroup())
+
+(aqu_top_prop <- aqu_top %>% 
+  group_by(year) %>% 
+  summarise(total_prod_y = sum(value), species, value) %>% 
+  ungroup() %>% 
+    mutate(prop = (value/total_prod_y) *100))
+
+
+(p1_sp <- ggplot(aqu_top) + 
+  geom_line(aes(x = year, y = value, colour = species)))
+
+(p2_env <- ggplot(aqu_dat) + 
+  geom_line(aes(x = year, y = env_value, colour = environment)))
+
+p3_prop_prod <- ggplot(aqu_top_prop) + 
+  geom_line(aes(x = year, y  = prop, colour = species))
+
+p1_sp + p3_prop_prod + plot_layout(guides = "collect")
+
+```
+
