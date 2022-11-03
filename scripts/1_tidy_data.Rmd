@@ -16,6 +16,8 @@ library(sf)
 
 source(here("src/directories.R"))
 
+select <- dplyr::select
+
 ```
 
 Capture fisheries production data
@@ -27,38 +29,38 @@ Capture fisheries production data
 ## "0 0" = more than zero but less than half the unit used (taken to be 0.25)
 ## F = FAO estimate from available sources of information
 
+col_seq <- seq(from = 8, to = 148, by =2)
 
-(capture_prod <- 
-   read_csv(here("data", "raw_data", "fisheries_prod_raw.csv")) %>% 
-   clean_names() %>% 
-   rename(country = country_country,
-          species = species_asfis_species,
-          fishing_area = fishing_area_fao_major_fishing_area,
-          unit = unit_unit) %>% 
-   pivot_longer(names_to = "year", values_to = "value", -c(country, species, fishing_area, unit)) %>% 
-   filter(!country %in% c("Totals - Number", "Totals - Tonnes - live weight")) %>% 
-   mutate(year = gsub("x", "", year) %>% 
-            as.numeric,
-          flag = case_when(value == "..." ~ "No data",
-                           value == " " ~ "Data not separately available",
-                           value == "-" ~ "Nil or zero",
-                           value == "0 0" ~ "0<x<0.5",
-                           grepl(" F", value) ~ "estimate",
-                           TRUE ~ "Reported"), 
-          value = case_when(value %in% c("...", " ", "-") ~ "0",
-                            value == "0 0" ~ "0.25",
-                            grepl(" F", value) ~ gsub(" F", "", value),
-                            TRUE ~ value) %>% 
-            as.numeric)
-)
+remove_flags <- read_csv(here("data/raw_data/global_capture_production_1950_2020.csv")) |> 
+   clean_names() |> 
+   select(-unit) |> 
+   filter(country_name == "Australia") |> 
+   rename(country = country_name,
+          species = asfis_species_name,
+          isscaap_group = asfis_species_name_1,
+          fishing_area = fao_major_fishing_area_name,
+          fishing_area_code = fao_major_fishing_area_code, 
+          unit = unit_name ) |> 
+   select(-col_seq)
+   
+isolate_flags <- read_csv(here("data/raw_data/global_capture_production_1950_2020.csv")) |> 
+   clean_names() |> 
+   select(-unit) |> 
+   filter(country_name == "Australia") |> 
+   rename(country = country_name,
+          species = asfis_species_name,
+          isscaap_group = asfis_species_name_1,
+          fishing_area = fao_major_fishing_area_name,
+          fishing_area_code = fao_major_fishing_area_code, 
+          unit = unit_name ) |> 
+   select(col_seq)
 
-#sorts country coding to deal with non-UTF characters that country code depends on
-Encoding(capture_prod$country) <- "latin1" #deals with the non-UTF
-capture_prod$country <- iconv(capture_prod$country, "latin1", "UTF-8",sub='')
+names(isolate_flags) <- paste0("f_", seq(1950, 2020))
 
-capture_prod$iso3c <- countrycode(capture_prod$country, origin = "country.name", destination = "iso3c", warn=TRUE)
-capture_prod$iso3c <- case_when(capture_prod$country == "Zanzibar" ~ "TZA",
-                                TRUE ~ capture_prod$iso3c)
+capture_prod <- 
+   remove_flags |> 
+   pivot_longer(cols = -c(1:6), names_to = "year", values_to = "value") |> 
+   mutate(year = gsub(pattern = "x", replacement = "", year) |> as.numeric())
 
 
 saveRDS(object = capture_prod, file = here("data", "tidy_data", "capture_production_tidy.rds"))
@@ -70,57 +72,30 @@ saveRDS(object = capture_prod, file = here("data", "tidy_data", "capture_product
 Aquaculture production data
 ```{r}
 
-(aqua_prod_raw <- 
-   read_csv(file.path(fishstat_dir, "aqua-prod-raw.csv")) %>% 
-  clean_names() %>% 
-  rename(country= country_name,
-         species = asfis_species_name,
-         area = fao_major_fishing_area_name,
-         environment = environment_name) %>% 
-   dplyr::select(-unit_name) %>% 
-   filter(!country %in% c("Totals - Tonnes - live weight", "FAO. 2021. Fishery and Aquaculture Statistics. Global aquaculture production 1950-2019 (FishstatJ). In: FAO Fisheries Division [online]. Rome. Updated 2021. www.fao.org/fishery/statistics/software/fishstatj/en"))
-)
+col_seq <- seq(from = 9, to = 149, by =2)
+
+remove_flags_aqua <- 
+   read_csv(here("data/raw_data/global_aquaculture_production_1950_2020.csv")) |> 
+   clean_names() |> 
+   select(-unit) |> 
+   filter(country_name == "Australia") |> 
+   rename(country = country_name,
+          species = asfis_species_name,
+          isscaap_group = asfis_species_name_1,
+          fishing_area = fao_major_fishing_area_name,
+          fishing_area_code = fao_major_fishing_area_code, 
+          environment = environment_name,
+          unit = unit_name ) |> 
+   select(-col_seq)
+
+aqua_prod <- 
+   remove_flags |> 
+   pivot_longer(cols = -c(1:6), names_to = "year", values_to = "value") |> 
+   mutate(year = gsub(pattern = "x", replacement = "", year) |> as.numeric())
 
 
-flags <- aqua_prod_raw %>% 
-  dplyr::select(-starts_with("x")) %>% 
-  pivot_longer(names_to = "flag", values_to = "symbol", -c(country, species, area, environment, unit)) %>% 
-  mutate(flag = case_when(symbol == "..." ~ "No data",
-                           symbol == " " ~ "Data not separately available",
-                           symbol == "-" ~ "Nil or zero",
-                           symbol == "0 0" ~ "0<x<0.5",
-                           symbol == "E" ~ "estimate",
-                           is.na(symbol) ~ "Reported")) %>% 
-  dplyr::select(-symbol)
+saveRDS(object = aqua_prod, file = here("data", "tidy_data", "aquaculture_production_tidy.rds"))
 
-
-#sorts country coding to deal with non-UTF characters that country code depends on
-Encoding(aqua_prod_raw$country) <- "latin1" #deals with the non-UTF
-aqua_prod_raw$country <- iconv(aqua_prod_raw$country, "latin1", "UTF-8",sub='')
-
-
-
-aquaculture_prod <- 
-  
-  bind_cols(
-    aqua_prod_raw %>%
-      dplyr::select(-c(starts_with("s_"), s)) %>% 
-      pivot_longer(names_to = "year", values_to = "value", cols = -c(country, species, area, environment, unit)) %>% 
-      mutate(iso_3c = countrycode(country, origin = "country.name", destination = "iso3c", warn = TRUE)) %>%
-      mutate(iso_3c = case_when(country == "Zanzibar" ~ "TZA",
-                                TRUE ~ iso_3c)) %>%
-      mutate(year = gsub("x", "", year) %>% 
-               as.numeric),
-    
-    flags %>% dplyr::select(flag)
-  ) %>% 
-  drop_na(iso_3c)
-
-
-
-
-  
-saveRDS(object = aquaculture_prod, file = here("data", "tidy_data", "aquaculture_production_tidy.rds"))
 
 ```
 
