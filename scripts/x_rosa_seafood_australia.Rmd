@@ -33,7 +33,7 @@ library(RColorBrewer)
 
 (aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds")) %>% 
     filter(country == "Australia") %>% 
-    select(- c("country", "unit", "flag", "iso_3c")) %>% 
+    select(- c("country", "unit")) %>% 
     mutate(type = "farmed"))
 
 (aqu_state <- readRDS(here("data", "tidy_data", "state_aquaculture_production_tidy.rds")))
@@ -235,7 +235,16 @@ palette = c("#4292C6", "#9ECAE1")
 
 
 
+```{r eFCRs}
+ (aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds")) %>% 
+    filter(country == "Australia") %>% 
+    select(- c("country", "unit")))
+(eFCRs <-read.csv(here("data", "tidy_data", "eFCRs.csv")))
+summary(as.factor(eFCRs$Taxa))
 
+
+
+```
 
 
 ``` {r}
