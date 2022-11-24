@@ -238,9 +238,17 @@ palette = c("#4292C6", "#9ECAE1")
 ```{r eFCRs}
  (aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds")) %>% 
     filter(country == "Australia") %>% 
-    select(- c("country", "unit")))
+    select(- c("country", "unit")) %>% 
+    filter(isscaap_group != c("Crabs, sea-spiders", "Mussels", "Miscellaneous marine crustaceans", "Miscellaneous aquatic invertebrates")))
+
 (eFCRs <-read.csv(here("data", "tidy_data", "eFCRs.csv")))
-summary(as.factor(eFCRs$Taxa))
+
+aqu_prod_eFCR <- aqu_aus %>% 
+  mutate(eFCR = case_when(grepl("Marine fishes", isscaap_group) ~ eFCRs$,
+                                  grepl("shrimp", species) ~ "Shrimps and prawns",
+                                  grepl("prawn", species) ~ "Shrimps and prawns",
+                                  grepl("trout", species) ~ "Trouts",
+                                  grepl("oyster", species) ~ "Oysters",
 
 
 
