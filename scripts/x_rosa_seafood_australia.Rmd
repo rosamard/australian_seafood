@@ -236,20 +236,66 @@ palette = c("#4292C6", "#9ECAE1")
 
 
 ```{r eFCRs}
- (aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds")) %>% 
-    filter(country == "Australia") %>% 
+aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds")) %>% 
+   filter(country == "Australia", 
+          value > 0)
+
+
+(aqu_aus_2 <- aqu_aus %>% 
     select(- c("country", "unit")) %>% 
-    filter(isscaap_group != c("Crabs, sea-spiders", "Mussels", "Miscellaneous marine crustaceans", "Miscellaneous aquatic invertebrates")))
+    filter(!isscaap_group %in% c("Oysters", "Crabs, sea-spiders", "Mussels", "Scallops, pectens", "Miscellaneous aquatic invertebrates", "Miscellaneous marine molluscs", "Tunas, bonitos, billfishes", "Abalones, winkles, conchs"))) ## check tuna FCR apparently super  super high.
+
+aqu_aus_3 <- aqu_aus_2 %>% 
+    mutate(Taxa = case_when(grepl("Freshwater fishes", isscaap_group) ~ "FW fishes",
+                            grepl("Barramundi", species) ~ "FW fishes",
+                             grepl("salmon", species) ~ "Salmons",
+                             grepl("trout", species) ~ "Trouts",
+                             grepl("Freshwater crustaceans", isscaap_group) ~ "FW crustaceans ",
+                             grepl("Marine fishes", species) ~ "Marine fishes ",
+                             grepl("Finfishes", species) ~ "Marine fishes ",
+                             grepl("marine crustaceans", species) ~ "Shrimps",
+                             grepl("Shrimps", isscaap_group) ~ "Shrimps", 
+                             grepl("eels", isscaap_group) ~ "Eels",
+                             grepl("Miscellaneous freshwater fishes", isscaap_group) ~ "FW fishes", 
+                          TRUE ~ "NA")) 
+
 
 (eFCRs <-read.csv(here("data", "tidy_data", "eFCRs.csv")))
+  
+aqu_prod_eFCR <- aqu_aus_3 %>%
+ left_join(eFCRs, by = c("Taxa", "year" = "Year")) 
 
-aqu_prod_eFCR <- aqu_aus %>% 
-  mutate(eFCR = case_when(grepl("Marine fishes", isscaap_group) ~ eFCRs$,
-                                  grepl("shrimp", species) ~ "Shrimps and prawns",
-                                  grepl("prawn", species) ~ "Shrimps and prawns",
-                                  grepl("trout", species) ~ "Trouts",
-                                  grepl("oyster", species) ~ "Oysters",
+# could try to make a figure with two y axis, on the left production by taxa per year (x), and on the right FCR
 
+prod_FCR <- aqu_prod_eFCR %>% 
+  group_by(Taxa, year) %>% 
+  summarise(production = sum(value), eFCR, species, Taxa) %>% 
+  drop_na(Taxa) %>% 
+  ungroup() %>% 
+  group_by(year) %>% 
+  mutate(aveFCR = mean(eFCR)) %>% 
+  filter(! Taxa == "NA")
+
+display.brewer.pal(n = 8, name = "Blues")
+palette=  brewer.pal(n = 8, name = "Blues")
+
+
+ggplot(prod_FCR) + 
+  geom_line( aes(x = year, y = eFCR, color= Taxa)) + 
+  scale_fill_manual(values =  palette) +                     #brewer.pal(n=2, "Blues"))+
+    scale_x_continuous(limits = c(1990, 2019)) +
+    theme_pubr()+
+    theme(legend.position = c(0.25, 0.8),
+          plot.title = element_text(hjust = 0.5, size = 15),
+          text = element_text(size=12),
+          legend.text = element_text(size=9),
+          legend.key.size = unit(0.7, "cm"))+
+    labs(title = "eFCR", y= "eFCR through time",x = "Year", color="Taxa group")#+
+   # scale_y_continuous(labels = scales::comma)+
+  # geom_text(data = prop_aqu %>% filter(fed_unfed == "unfed"), mapping = aes(x=year, y=y_value, label=round(prop)), 
+  #           size=3, nudge_y = 1.5) 
+  )
+  
 
 
 ```
