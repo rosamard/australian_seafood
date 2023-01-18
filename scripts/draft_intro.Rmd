@@ -1,0 +1,249 @@
+---
+title: "Confirmation_figs"
+author: "Rosa Mar Dominguez"
+date: "25/07/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+
+```{r}
+
+library(tidyverse)
+library(janitor)
+library(here)
+library(countrycode)
+library(vroom)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(RColorBrewer)
+
+```
+
+
+```{r}
+(cap_aus <- readRDS(here("data", "tidy_data", "capture_production_tidy.rds")) %>% 
+    filter(country == "Australia") %>% 
+    select(- c("country", "unit", "flag", "iso3c")) %>% 
+    mutate(type = "wild-caught"))
+
+(aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds")) %>% 
+    filter(country == "Australia") %>% 
+    select(- c("country", "unit", "flag", "iso_3c")) %>% 
+    mutate(type = "farmed"))
+
+(aqu_state <- readRDS(here("data", "tidy_data", "state_aquaculture_production_tidy.rds")))
+```
+
+
+#Flags in high-risk
+```{r}
+
+SW_Atlantic_lab <- data.frame(Country = c("Argentina", "Uruguay", "Taiwan", "Brazil", "Spain", "South Korea", "Other"), 
+                              prop_lab = c(0.59, 0.23,0.03, 0.03,0.03,0.03,0.05))
+SW_Atlantic_iuu <- data.frame(Country = c("Argentina", "Uruguay", "Taiwan", "Brazil", "Spain", "South Korea", "Other"), 
+                    prop_iuu = c(0.59, 0.23,0.03, 0.03,0.03,0.03,0.05))
+
+SW_atl_flag <- full_join(SW_Atlantic_lab, SW_Atlantic_iuu, by = c("Country")) 
+
+
+Humboldt_current_lab <- data.frame(Country = c("Peru", "Other"), 
+                                   prop_lab = c(0.87,0.13)) 
+
+Humboldt_current_iuu <- data.frame(Country = c("Peru", "Other"), 
+                                   prop_iuu = c(0.87,0.13)) 
+
+HC_flag <- full_join(Humboldt_current_lab, Humboldt_current_iuu) 
+
+Maldives_lab <- data.frame(Country = c("Taiwan", "Sri Lanka", "China", "Seychelles", "South Korea", "Other"), 
+                           prop_lab = c(0.45,0.31,0.10,0.07,0.02,0.05))
+
+Maldives_iuu <- data.frame(Country = c("Taiwan", "France","Mauritius" ,"China", "Sri Lanka", "Madagascar","Japan","Seychelles", "South Korea", "Other"), 
+                           prop_iuu = c(0.29, 0.25, 0.11, 0.08, 0.06, 0.05, 0.03, 0.03, 0.03, 0.07))
+
+mald_flag <- full_join(Maldives_lab, Maldives_iuu) 
+
+W_Africa_lab <- data.frame(Country = c("Morocco", "Spain", "China", "Senegal", "Russia", "Mauritania", "Norway", "Belize", "Comoros", "Guinea-Bissau", "Italy", "Curacao","France", "Japan", "Cameroon", "Portugal", "Netherlands", "South Korea", "Indonesia", "Turkey", "Lithuania", "Georgia", "St. Kitts and Nevis", "Other"), 
+                           prop_lab = c(0.37, 0.14, 0.09, 0.07, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02 ,0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.05)) 
+W_Africa_iuu <- data.frame(Country = c("Morocco", "Spain", "China", "Senegal", "Russia", "Mauritania", "Norway", "Belize", "Comoros", "Guinea-Bissau", "Italy", "Curacao","France", "Cameroon","Japan", "Netherlands", "South Korea", "Portugal","Indonesia", "Turkey", "Lithuania", "Georgia", "Other"), 
+                           prop_iuu = c(0.37, 0.14, 0.09, 0.07, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02 ,0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.05)) 
+
+WA_flag <- full_join(W_Africa_lab, W_Africa_iuu) 
+
+Azores_lab <- data.frame(Country = c("Portugal", "Other"), 
+                         prop_lab = c(0.74, 0.26))
+Azores_iuu <- data.frame(Country = c("Portugal", "Other"), 
+                         prop_iuu = c(0.71, 0.29))
+Azores_flag <- full_join(Azores_lab, Azores_iuu) 
+
+Galapagos_lab <- data.frame(Country = c("China", "Colombia", "Ecuador", "Panama", "Spain", "Venezuela", "Taiwan", "Other"), 
+                            prop_lab = c(0.57, 0.13, 0.09, 0.04, 0.04, 0.03, 0.03, 0.07)) 
+Galapagos_iuu <- data.frame(Country = c("China", "Colombia", "Ecuador", "Panama", "Spain", "Venezuela", "Taiwan", "Other"), 
+                            prop_iuu = c(0.58, 0.13, 0.09, 0.04, 0.04, 0.03, 0.03, 0.07))
+
+Galapagos_flag <- full_join(Galapagos_lab, Galapagos_iuu) 
+
+ 
+all_flags <- rbind(SW_atl_flag, HC_flag, WA_flag, Azores_flag, Galapagos_flag, mald_flag) %>% 
+  group_by(Country) %>% 
+  summarise(t_prop_lab = round((sum(prop_lab)/6)*100, digits = 2), 
+            t_prop_iuu = round((sum(prop_iuu)/6)*100, digits = 2), Country) %>%
+  ungroup() %>% 
+  unique() %>% 
+  arrange(desc(t_prop_lab))
+
+
+ 
+```
+
+
+#destination ports
+```{r}
+### LAbour abuse destination 
+
+SW_atl_dest_lab <-  data.frame(
+  Country = c("Uruguay", "Argentina", "Argentina", "Argentina", "Argentina", "Brazil", "Falkland Islands", "Falkland Islands", "Argentina", "Argentina", "Argentina", "Argentina", "Uruguay", "Uruguay", "Brazil", "South Africa", "Argentina", "Mauritius", "Chile", "Uruguay"), 
+  Trips_prop = c(23.6, 19.0, 13.9, 9.3, 5.4, 4.7, 3.3, 2.7, 2.5, 2.2, 2.0, 1.4, 1.2, 1.0, 0.8, 0.7, 0.7, 0.5, 0.5, 0.5)) %>% 
+  group_by(Country) %>% 
+  summarise(prop_lab = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+SW_atl_dest_iuu <-  data.frame(
+  Country = c("Uruguay", "Argentina", "Argentina", "Argentina", "Argentina", "Brazil", "Falkland Islands", "Falkland Islands", "Argentina", "Argentina", "Argentina", "Argentina", "Uruguay", "Uruguay", "Brazil", "South Africa", "Argentina", "Mauritius", "Uruguay", "Chile"), 
+  Trips_prop = c(23.7, 19.0, 14, 9.3, 5.4, 4.6, 3.3, 2.7, 2.5, 2.2, 2.0, 1.4, 1.2, 1.0, 0.8, 0.7, 0.7, 0.5, 0.5, 0.5)) %>% 
+  group_by(Country) %>% 
+  summarise(prop_iuu = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+SW_atl_dest <- SW_atl_dest_lab %>% 
+  full_join(SW_atl_dest_iuu)
+
+HC_dest_lab <-  data.frame(
+  Country = c("Peru", "Peru","Peru","Peru","Peru","Peru","Peru","Peru","Peru","Peru","Peru","Peru", "Chile", "Ecuador", "Peru", "Peru", "China", "Peru", "Ecuador", "French Polynesia"), 
+  Trips_prop = c(19.6, 14.7, 13.4, 11.4, 9.6, 5.7, 4.9, 4.9, 3.7, 3.5, 1.7, 1.5, 1.0, 0.7, 0.6, 0.5, 0.4, 0.2, 0.2, 0.1)) %>% 
+  group_by(Country) %>% 
+  summarise(prop_lab = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+
+(HC_dest_iuu <-  data.frame(
+  Country = c("Peru", "Peru","Peru","Peru","Peru","Peru","Peru","Peru","Peru","Peru","Peru","Peru", "Chile", "Ecuador", "Peru",  "China", "Peru","Peru", "Ecuador", "Peru"), 
+  Trips_prop = c(19.7, 14.8, 13.5, 11.5, 9.6, 5.8, 5, 4.9, 3.7, 3.5, 1.7, 1.5, 1.0, 0.7, 0.5, 0.4, 0.3, 0.2, 0.2, 0.1)) %>% 
+  group_by(Country) %>% 
+  summarise(prop_iuu = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique())
+
+HC_dest <- HC_dest_lab %>% 
+  full_join(HC_dest_iuu)
+
+
+mald_dest_lab <- data.frame(
+  Country = c("Sri Lanka", "Seychelles", "Mauritius", "Singapore", "Sri Lanka", "Taiwan", "Thailand", "Sri Lanka", "Thailand", "Indonesia", "China"), 
+  Trips_prop = c(36.7, 14.0, 12.8, 11.6, 7.7, 3.2, 2.7, 2.2, 1.8, 1.4, 1.1)
+) %>% 
+  group_by(Country) %>% 
+  summarise(prop_lab = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+mald_dest_iuu <- data.frame(
+  Country = c("Mauritius", "Reunion", "Sri Lanka", "Seychelles", "Madagascar", "Singapore", "South Africa", "South Africa", "Taiwan", "Sri Lanka", "Reunion", "Indonesia", "Mozambique", "Madagascar", "Thailand", "China", "Mozambique", "Sri Lanka", "Madagascar", "Indonesia", "Thailand"), 
+  Trips_prop = c(37.3, 22.1, 7.5, 6.2, 4.6, 4.0, 2.1, 1.6, 1.5, 1.5, 1.4, 1.1, 0.8, 0.6, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.4)
+) %>% 
+  group_by(Country) %>% 
+  summarise(prop_iuu = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+mald_dest <- mald_dest_lab %>% 
+  full_join(mald_dest_iuu)
+
+WA_dest_lab <- data.frame(
+  Country = c("Western Sahara", "Mauritania", "Senegal", "Guinea", "Guinea-Bissau", "Cape Verde", "Sierra Leone", "Spain", "Cote d'Ivore", "Cote d'Ivore", "Mauritania", "Brazil", "Morocco", "Ghana", "Senegal", "Spain", "Liberia", "Spain", "South Africa", "Gambia"), 
+  Trips_prop= c(42.2, 23.2, 19.0, 2.5, 2.5, 2.3, 1.5, 1.1, 0.8, 0.6, 0.5, 0.4, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2, 0.2, 0.2)
+) %>% 
+  group_by(Country) %>% 
+  summarise(prop_lab = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+WA_dest_iuu <- data.frame(
+  Country = c("Western Sahara", "Mauritania", "Senegal", "Guinea", "Guinea-Bissau", "Cape Verde", "Sierra Leone", "Spain", "Cote d'Ivore", "Cote d'Ivore", "Mauritania", "Morocco","Brazil", "Senegal", "Ghana", "Liberia", "Spain", "Spain", "South Africa", "Gambia"), 
+  Trips_prop= c(42.5, 23.4, 19.1, 2.5, 2.5, 2.2, 1.5, 1.0, 0.7, 0.5, 0.5, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2, 0.2, 0.2, 0.2)
+) %>% 
+  group_by(Country) %>% 
+  summarise(prop_iuu = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+WA_dest <- WA_dest_lab %>% 
+  full_join(WA_dest_iuu)
+
+Azores_dest_lab <- data.frame(
+  Country = c("Portugal", "Portugal", "Spain", "Spain","Portugal","Portugal", "Portugal", "Portugal", "Portugal","Spain","Spain", "Spain", "Spain", "Portugal","Portugal", "Portugal","Spain", "Spain", "Portugal",  "Spain"),
+  Trips_prop = c(15.5, 14.4, 12.8, 11.1, 10.6, 6.3, 4.5, 2.9, 2.6, 2.5, 1.6, 1.6, 1.3, 1.3, 0.9, 0.9, 0.8, 0.7, 0.7, 0.7)
+) %>% 
+  group_by(Country) %>% 
+  summarise(prop_lab = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+Azores_dest_iuu <- data.frame(
+  Country = c("Portugal","Spain", "Spain", "Portugal", "Portugal","Portugal", "Spain","Portugal", "Portugal", "Spain", "Spain", "Spain", "Portugal","Portugal", "Portugal","Spain", "Spain", "Portugal",  "Portugal", "Spain"),
+  Trips_prop = c(15.8, 14.8, 13, 12.2, 9.6, 6.7, 3, 2.9, 2.4, 2.0, 1.9, 1.5, 1.5, 1.1, 1.1, 0.9, 0.9, 0.9, 0.8, 0.7)
+) %>% 
+  group_by(Country) %>% 
+  summarise(prop_iuu = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+Azores_dest <- Azores_dest_lab %>% 
+  full_join(Azores_dest_iuu)
+
+Galapagos_dest_lab <- data.frame(
+  Country = c("Ecuador", "Peru", "Peru", "Chile", "China", "Panama", "Ecuador", "Colombia", "South Korea", "China", "China", "Mexico", "Singapore"), 
+  Trips_prop = c(20.6, 19.2, 12.6, 10.4, 8.6, 4.1, 3.0, 2.9, 2.4, 2.2, 1.4, 1.0, 0.9)
+) %>% 
+  group_by(Country) %>% 
+  summarise(prop_lab = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+Galapagos_dest_iuu <- data.frame(
+  Country = c("Ecuador", "Peru", "Peru", "Chile", "China", "Panama", "Ecuador", "Colombia", "South Korea", "China", "China", "Mexico", "Singapore"), 
+  Trips_prop = c(20.4, 19.7, 12.6, 10.7, 8.8, 3.7, 3.0, 2.9, 2.3, 2.2, 1.4, 1.0, 0.9)
+) %>% 
+  group_by(Country) %>% 
+  summarise(prop_iuu = sum(Trips_prop), Country) %>% 
+  ungroup() %>% 
+  unique()
+
+
+Galapagos_dest <- Galapagos_dest_lab %>% 
+  full_join(Galapagos_dest_iuu)
+
+(all_dest <- rbind(SW_atl_dest, HC_dest, WA_dest, Azores_dest, Galapagos_dest, mald_dest) %>% 
+  group_by(Country) %>% 
+  summarise(t_prop_lab = round(sum(prop_lab)*100/600), 
+            t_prop_iuu = round(sum(prop_iuu)*100/600), Country) %>%
+  ungroup() %>% 
+  unique() %>% 
+  arrange(desc(t_prop_lab)))
+  
+```
+
+
+
+#join with trade data
+```{r}
+trade <- readRDS(here("data", "tidy_data", "seafood_trade_volume_product_weight_by_partner_2019.rds")) %>% 
+  filter(reporting_country_name %in% all_flags$Country) 
+
+```
