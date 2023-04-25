@@ -53,15 +53,31 @@ ggplot(aqu_aus_2, aes(x = as.numeric(year), y = value, colour = species)) +
   summarise(t_aqu_production = sum(value)) %>% 
     ungroup())
 
+
 (aqu_aus_prop <- aqu_aus %>% 
   left_join(aqu_aus_tot, by = c("year" = "year")) %>% 
   group_by(species, year) %>% 
   mutate(prop = (sum(value)/t_aqu_production)*100) %>% 
     ungroup()) 
 
+#Salmon, and tuna shrimp proportion
 
-# 
-# ggplot(aqu_aus_prop, aes(x = year, y = species)) + 
+sal_tu_sh <- aqu_aus %>% 
+  filter(grepl(c("salmon|Salmon|Tuna|tuna|Shrimp|shrimp"), species)) %>% 
+  mutate(group = case_when(species %in% c("Atlantic salmon", "Chinook(=Spring=King) salmon") ~ "Salmon", 
+                         species == "Southern bluefin tuna" ~ "Tuna", 
+                         TRUE ~ "Shrimp")) %>% 
+  group_by(year, group) %>% 
+  summarise(production = sum(value)) %>% 
+  ungroup() %>% 
+  left_join(aqu_aus_tot, by = "year") %>% 
+  mutate(prop = production*100/t_aqu_production) %>% 
+  unique()
+
+recent <- sal_tu_sh %>% 
+  filter(year == "2020")
+
+ # ggplot(aqu_aus_prop, aes(x = year, y = species)) + 
 #   geom_bar(stat = "identity", aes(fill = prop))
 
 # % of aquaculture production per species through time  
@@ -242,7 +258,7 @@ aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds"))
 (aqu_aus_2 <- aqu_aus %>% 
     select(- c("country", "unit")) %>% 
     filter(!isscaap_group %in% c("Oysters", "Crabs, sea-spiders", "Mussels", "Scallops, pectens", "Miscellaneous aquatic invertebrates", "Miscellaneous marine molluscs", "Tunas, bonitos, billfishes", "Abalones, winkles, conchs"))) ## check tuna FCR apparently super super high; Naylor and Burke 2005 has FCR for finfishes at 3.84 in 2002
-
+#Feed conversion ratios (FCR) are generally high around 15–20:1 for large specimens and 10–15:1 for smaller fish.  As a result only a small fraction (5 percent) ofthe total energy input is used for body growth (Korsmeyer and Dewars, 2001).
 aqu_aus_3 <- aqu_aus_2 %>% 
     mutate(Taxa = case_when(grepl("Freshwater fishes", isscaap_group) ~ "FW fishes",
                             grepl("Barramundi", species) ~ "FW fishes",
@@ -267,17 +283,46 @@ aqu_prod_eFCR <- aqu_aus_3 %>%
 
 prod_FCR <- aqu_prod_eFCR %>% 
   group_by(Taxa, year) %>% 
-  summarise(production = sum(value), eFCR, species, Taxa) %>% 
+  reframe(production = sum(value), eFCR, species, Taxa) %>% 
   drop_na(Taxa) %>% 
   ungroup() %>% 
   group_by(year) %>% 
   mutate(aveFCR = mean(eFCR)) %>% 
-  filter(! Taxa == "NA")
+  filter(! Taxa == "NA") %>% 
+  ungroup()
+
+#top eFCR 
+tp_eFCR <- prod_FCR %>% 
+  filter(year == "2015") %>% 
+  select(Taxa, eFCR) %>% 
+  unique() %>% 
+  arrange(desc(eFCR))
+# % of total production per eFCR group
+eFCR_prop <- aqu_aus %>% mutate(Taxa = case_when(grepl("Freshwater fishes", isscaap_group) ~ "FW fishes",
+                            grepl("Barramundi", species) ~ "FW fishes",
+                             grepl("salmon", species) ~ "Salmons",
+                             grepl("trout", species) ~ "Trouts",
+                             grepl("Freshwater crustaceans", isscaap_group) ~ "FW crustaceans",
+                             grepl("Marine fishes", species) ~ "Marine fishes ",
+                             grepl("Finfishes", species) ~ "Marine fishes ",
+                             grepl("marine crustaceans", species) ~ "Shrimps",
+                             grepl("Shrimps", isscaap_group) ~ "Shrimps", 
+                             grepl("eels", isscaap_group) ~ "Eels",
+                             grepl("Miscellaneous freshwater fishes", isscaap_group) ~ "FW fishes", 
+                          TRUE ~ isscaap_group)) %>% 
+  select(-c("country", "fishing_area", "isscaap_group", "species", "fishing_area_code", "environment")) %>% 
+  left_join(aqu_total_prod, by = "year") %>% 
+  group_by(year, Taxa) %>% 
+  reframe(production = sum(value), total_production) %>% 
+  mutate(prop = production*100/total_production) %>% 
+  unique()
+  
+eFCR_prop %>% filter(Taxa == "FW fishes")
 
 display.brewer.pal(n = 5, name = "Blues")
 palette= c(brewer.pal(n=5, "Blues"), "#83CFC1", "#66C0CA")
   GNBlupal
-(eFCR_plot <- ggplot(prod_FCR) + 
+(eFCR_plot <- ggplot(prod_FCR %>% arrange(desc(eFCR))) + 
   geom_line( aes(x = year, y = eFCR, color= Taxa), size = 1) + 
   scale_color_manual(values =  palette) +                     #brewer.pal(n=2, "Blues"))+
     scale_x_continuous(limits = c(1994, 2012)) +
@@ -291,6 +336,13 @@ palette= c(brewer.pal(n=5, "Blues"), "#83CFC1", "#66C0CA")
    # scale_y_continuous(labels = scales::comma)+
   # geom_text(data = prop_aqu %>% filter(fed_unfed == "unfed"), mapping = aes(x=year, y=y_value, label=round(prop)), 
   #           size=3, nudge_y = 1.5) 
+
+#average eFCR through time
+av <- aqu_prod_eFCR %>%
+  filter(!is.na(eFCR)) %>%
+  group_by(year) %>% 
+  summarise(av_eFCR = mean(eFCR))
+  
   
   
 # what % of the total aquaculture production does this fig cover?
@@ -298,16 +350,17 @@ palette= c(brewer.pal(n=5, "Blues"), "#83CFC1", "#66C0CA")
 aqu_total_prod <- aqu_aus %>%
   select(year, value) %>% 
   group_by(year) %>% 
-  summarise(total_production = sum(value), year) %>% 
+  reframe(total_production = sum(value), year) %>% 
   ungroup() %>% 
-  mutate(type = "total")
+  mutate(type = "total") %>% 
+  unique()
 
 FCR_total_prod <- aqu_prod_eFCR %>% 
   select(year, value) %>% 
   group_by(year) %>% 
-  summarise(total_production_FCR = sum(value), year) %>% 
-  ungroup() %>% 
-  mutate(type = "FCR")
+  reframe(total_production_FCR = sum(value), year) %>% 
+  mutate(type = "FCR") %>% 
+  unique()
 
 ggplot() + 
   geom_line(data = aqu_total_prod, aes(x = year, y = total_production)) +
@@ -317,7 +370,9 @@ ggplot() +
 #calculate %%
 (FCR_prop_total <- aqu_total_prod %>%  full_join(FCR_total_prod, by = "year") %>% 
   mutate(prop = total_production_FCR*100/total_production) %>% 
-  select(year, prop))
+  select(year, prop) %>% 
+  filter(!is.na(prop)) %>% 
+    unique())
 
 summary(FCR_prop_total)
 
