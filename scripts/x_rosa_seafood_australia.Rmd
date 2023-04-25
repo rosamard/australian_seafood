@@ -258,7 +258,7 @@ aqu_aus <- readRDS(here("data", "tidy_data", "aquaculture_production_tidy.rds"))
 (aqu_aus_2 <- aqu_aus %>% 
     select(- c("country", "unit")) %>% 
     filter(!isscaap_group %in% c("Oysters", "Crabs, sea-spiders", "Mussels", "Scallops, pectens", "Miscellaneous aquatic invertebrates", "Miscellaneous marine molluscs", "Tunas, bonitos, billfishes", "Abalones, winkles, conchs"))) ## check tuna FCR apparently super super high; Naylor and Burke 2005 has FCR for finfishes at 3.84 in 2002
-#Feed conversion ratios (FCR) are generally high around 15–20:1 for large specimens and 10–15:1 for smaller fish.  As a result only a small fraction (5 percent) ofthe total energy input is used for body growth (Korsmeyer and Dewars, 2001).
+#Feed conversion ratios (FCR) are generally high around 15–20:1 for large specimens and 10–15:1 for smaller fish.  As a result only a small fraction (5 percent) of the total energy input is used for body growth (Korsmeyer and Dewars, 2001).
 aqu_aus_3 <- aqu_aus_2 %>% 
     mutate(Taxa = case_when(grepl("Freshwater fishes", isscaap_group) ~ "FW fishes",
                             grepl("Barramundi", species) ~ "FW fishes",
